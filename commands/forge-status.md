@@ -19,13 +19,13 @@ If SPRINT.md doesn't exist, report "No active sprint" and stop.
 
 ```bash
 # Ralph worktree workers
-ls .ralph-worktrees/*/worker-*.log 2>/dev/null
+ls .forge-worktrees/*/worker-*.log 2>/dev/null
 
 # Task claiming status
-ls .ralph-tasks/claimed/*.lock 2>/dev/null
+ls .forge-tasks/claimed/*.lock 2>/dev/null
 
 # Completed tasks
-ls .ralph-tasks/completed/*.done 2>/dev/null
+ls .forge-tasks/completed/*.done 2>/dev/null
 ```
 
 ### 3. Check Implementation Plan Progress

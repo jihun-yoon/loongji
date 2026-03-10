@@ -1,8 +1,8 @@
 ---
-description: "Auto-detect branch → read plan → setup ralph workflow → execute"
+description: "Auto-detect branch → read plan → iterative spec/plan/build execution"
 ---
 
-Sprint work session. Detect current branch, find the matching plan, and execute using ralph-multiverse iterative workflow.
+Forge work session. Detect current branch, find the matching plan, and execute using iterative spec → plan → build workflow.
 
 ## Step 1: Self-Orient
 
@@ -42,7 +42,7 @@ Sprint work session. Detect current branch, find the matching plan, and execute 
    | Plan | PLAN-20260310-feature-name |
    | Phases | 3 |
    | Dependencies | None / All resolved |
-   | Execution | Ralph Multiverse Mode C |
+   | Execution | Forge iterative (parallel workers) |
    ```
 
 ## Step 2: Check Prior Work
@@ -51,15 +51,15 @@ Sprint work session. Detect current branch, find the matching plan, and execute 
 git log main..<branch> --oneline
 ```
 
-- If ralph files already exist (IMPLEMENTATION_PLAN.md, specs/, loop.sh): **resume** — skip to Step 4
-- If commits exist but no ralph files: check what's done, adjust accordingly
+- If forge workflow files already exist (IMPLEMENTATION_PLAN.md, specs/, loop.sh): **resume** — skip to Step 4
+- If commits exist but no workflow files: check what's done, adjust accordingly
 - If clean: proceed to Step 3
 
-## Step 3: Setup Ralph Workflow
+## Step 3: Setup Forge Workflow
 
-Convert the PLAN into ralph-multiverse format using the forge plugin's actual templates.
+Convert the PLAN into iterative execution format using forge's templates.
 
-### 3.1: Copy Ralph Templates
+### 3.1: Copy Forge Templates
 
 Copy templates from the forge plugin's templates directory:
 ```bash
@@ -181,10 +181,10 @@ Use ralph's template format header (with the regex parsing comments), then conve
 
 ```bash
 git add PROMPT_plan.md PROMPT_build.md AGENTS.md IMPLEMENTATION_PLAN.md loop.sh worker.sh specs/
-git commit -m "chore: setup ralph-multiverse workflow from PLAN"
+git commit -m "chore: setup forge workflow from PLAN"
 ```
 
-## Step 4: Execute Ralph Workflow
+## Step 4: Execute Forge Workflow
 
 ### 4.1: Planning Iterations (Mode B — sequential)
 
@@ -248,7 +248,7 @@ When loop.sh completes (all tasks checked or max iterations reached):
 
 ## Step 6: Plan Completion
 
-1. **Clean up ralph artifacts** (don't merge to main):
+1. **Clean up forge execution artifacts** (don't merge to main):
    Add to `.gitignore` if not already:
    ```
    PROMPT_plan.md
@@ -257,8 +257,8 @@ When loop.sh completes (all tasks checked or max iterations reached):
    IMPLEMENTATION_PLAN.md
    loop.sh
    worker.sh
-   .ralph-worktrees/
-   .ralph-tasks/
+   .forge-worktrees/
+   .forge-tasks/
    ```
    ```bash
    git rm --cached PROMPT_plan.md PROMPT_build.md AGENTS.md IMPLEMENTATION_PLAN.md loop.sh worker.sh 2>/dev/null || true
@@ -277,7 +277,7 @@ When loop.sh completes (all tasks checked or max iterations reached):
    | Tasks | N/N complete |
    | Tests | Passed |
    | Build | Passed |
-   | Ralph artifacts | Cleaned (not merged) |
+   | Forge artifacts | Cleaned (not merged) |
 
    To merge, run in the main pane:
    /forge-merge <branch>
@@ -285,10 +285,10 @@ When loop.sh completes (all tasks checked or max iterations reached):
 
 ## Rules
 - Always read the plan file completely before starting any work
-- **Use ralph's templates verbatim** — do NOT rewrite PROMPT_plan.md or PROMPT_build.md guardrails
+- **Use forge templates verbatim** — do NOT rewrite PROMPT_plan.md or PROMPT_build.md guardrails
 - Only fill in PROJECT CONTEXT, AGENTS.md, specs, and IMPLEMENTATION_PLAN.md from the PLAN
 - **Dependency gate**: If dependencies aren't merged, STOP and report — don't proceed
-- Ralph artifacts are ephemeral — never merge them to main
+- Forge execution artifacts are ephemeral — never merge them to main
 - If loop.sh fails or workers crash, check logs before retrying
 - Read AGENTS.md for all project-specific commands — do not hardcode build/test commands
 - Maximum 3 workers recommended (diminishing returns beyond that)
