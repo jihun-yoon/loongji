@@ -1,0 +1,22 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "loongji",
+  "description": "Loongji AI SDLC — from idea to shipped feature with iterative spec, planning, and parallel build execution",
+  "owner": {
+    "name": "Jihun Yoon",
+    "email": "yjh4374@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "loongji",
+      "description": "Loongji AI SDLC — iterative spec, planning, and parallel build execution",
+      "version": "1.0.0",
+      "author": {
+        "name": "Jihun Yoon",
+        "email": "yjh4374@gmail.com"
+      },
+      "source": ".",
+      "category": "development"
+    }
+  ]
+}
