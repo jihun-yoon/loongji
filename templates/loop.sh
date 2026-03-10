@@ -190,15 +190,12 @@ cleanup() {
         git push origin "$CURRENT_BRANCH" 2>/dev/null || true
     fi
 
-    # Remove worktrees and their branches
+    # Remove worktrees (no branch cleanup needed — detached HEAD)
     echo "Removing worktrees..."
-    for idx in "${!WORKER_DIRS[@]}"; do
-        dir="${WORKER_DIRS[$idx]}"
-        worker_num=$((idx + 1))
+    for dir in "${WORKER_DIRS[@]}"; do
         if [[ -d "$dir" ]]; then
             git worktree remove "$dir" --force 2>/dev/null || rm -rf "$dir"
         fi
-        git branch -D "lj-worktree-${worker_num}" 2>/dev/null || true
     done
     git worktree prune 2>/dev/null || true
     rmdir "$WORKTREE_DIR" 2>/dev/null || true
@@ -225,16 +222,12 @@ echo "Creating $WORKERS worktrees..."
 for i in $(seq 1 "$WORKERS"); do
     WTREE_PATH="${WORKTREE_DIR}/worker-${i}"
 
-    # Create worktree — each worker gets a dedicated branch based on current HEAD
+    # Create worktree with detached HEAD (C Compiler style)
+    # All workers push to the same branch — no separate branches needed
     if [[ -d "$WTREE_PATH" ]]; then
         git worktree remove "$WTREE_PATH" --force 2>/dev/null || rm -rf "$WTREE_PATH"
     fi
-    # Delete stale worktree branch if it exists
-    git branch -D "lj-worktree-${i}" 2>/dev/null || true
-    git worktree add -b "lj-worktree-${i}" "$WTREE_PATH" HEAD 2>/dev/null || {
-        # Fallback: detached HEAD
-        git worktree add --detach "$WTREE_PATH" HEAD 2>/dev/null
-    }
+    git worktree add --detach "$WTREE_PATH" HEAD 2>/dev/null
 
     WORKER_DIRS+=("$WTREE_PATH")
     echo "  Created worktree: $WTREE_PATH"
@@ -247,16 +240,8 @@ for i in $(seq 1 "$WORKERS"); do
     WTREE_PATH="${WORKTREE_DIR}/worker-${i}"
     LOG_FILE="${WORKTREE_DIR}/worker-${i}.log"
 
-    # Protect shared files from concurrent modification
-    # Make IMPLEMENTATION_PLAN.md and AGENTS.md read-only in each worktree.
-    # Workers can still READ them for context, but writes will fail at the filesystem level.
-    # Structural enforcement: make shared files read-only in worktrees.
-    # Workers can READ them for context but filesystem blocks writes —
-    # no need to rely on prompt instructions for these.
-    chmod a-w "$WTREE_PATH/IMPLEMENTATION_PLAN.md" 2>/dev/null || true
-    chmod a-w "$WTREE_PATH/AGENTS.md" 2>/dev/null || true
-    # Remove .lj-tasks/ from worktrees — task locking happens in main repo only
-    rm -rf "$WTREE_PATH/.lj-tasks" 2>/dev/null || true
+    # Workers need .lj-tasks/ for claiming and IMPLEMENTATION_PLAN.md for task discovery
+    # All coordination happens via git push to the shared branch (atomic CAS)
 
     # Launch worker in its worktree
     (

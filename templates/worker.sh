@@ -1,7 +1,7 @@
 #!/bin/bash
-# Loongji — Parallel Worker
-# Runs inside a git worktree, claims tasks from IMPLEMENTATION_PLAN.md via git-based locking,
-# invokes Claude to implement them, and merges results back to main.
+# Loongji — Parallel Worker (C Compiler style)
+# All workers push to the SAME branch. Git push conflict = natural CAS lock.
+# Each worker: sync → claim → work → push → release → repeat.
 #
 # Usage: worker.sh <worker_id> <max_iterations> <main_branch>
 # Called by loop.sh — not intended for direct invocation.
@@ -11,7 +11,6 @@ set -uo pipefail
 WORKER_ID="$1"
 MAX_ITERATIONS="${2:-0}"
 MAIN_BRANCH="${3:-main}"
-WORKER_BRANCH="worker-${WORKER_ID}"
 PROMPT_FILE="PROMPT_build.md"
 TASKS_DIR=".lj-tasks"
 ITERATION=0
@@ -33,42 +32,45 @@ log_error() {
 
 trap 'SHUTDOWN_REQUESTED=1; log "Shutdown requested, finishing current iteration..."' SIGTERM SIGINT
 
-# ─── Git Helpers ──────────────────────────────────────────────
+# ─── Git Helpers (C Compiler style: all push to same branch) ──
 
-git_pull_rebase() {
+sync_with_main() {
+    # Fetch latest from remote and rebase local work on top
     local retries=3
     for i in $(seq 1 $retries); do
-        if git pull --rebase origin "$MAIN_BRANCH" 2>/dev/null; then
+        git fetch origin "$MAIN_BRANCH" 2>/dev/null || true
+        if git rebase "origin/$MAIN_BRANCH" 2>/dev/null; then
             return 0
         fi
-        log "Pull rebase attempt $i/$retries failed, retrying..."
-        sleep 1
+        git rebase --abort 2>/dev/null || true
+        log "Sync attempt $i/$retries failed, retrying..."
+        sleep 2
     done
-    log_error "Failed to pull after $retries attempts"
+    log_error "Failed to sync after $retries attempts"
     return 1
 }
 
-git_push_with_retry() {
-    local branch="$1"
-    local retries=3
+push_to_main() {
+    # Push current HEAD to the shared branch (atomic CAS)
+    # If another worker pushed first, this fails → sync → retry
+    local retries=5
     for i in $(seq 1 $retries); do
-        if git push origin "$branch" 2>/dev/null; then
+        if git push origin "HEAD:$MAIN_BRANCH" 2>/dev/null; then
             return 0
         fi
-        log "Push attempt $i/$retries failed, rebasing..."
-        git pull --rebase origin "$branch" 2>/dev/null || true
+        log "Push attempt $i/$retries failed (another worker pushed first), syncing..."
+        sync_with_main || true
         sleep 1
     done
-    log_error "Failed to push $branch after $retries attempts"
+    log_error "Failed to push after $retries attempts"
     return 1
 }
 
 # ─── Task Claiming ────────────────────────────────────────────
-# Uses .lj-tasks/claimed/worker-N.lock files + git push as atomic CAS.
-# IMPLEMENTATION_PLAN.md itself is never modified by the locking mechanism.
+# Uses .lj-tasks/claimed/ files + git push as atomic CAS.
+# All workers push to the same branch — push conflict = someone else claimed first.
 
 get_claimed_tasks() {
-    # Return list of already-claimed task descriptions
     local claimed=""
     if [[ -d "${TASKS_DIR}/claimed" ]]; then
         for lockfile in "${TASKS_DIR}/claimed"/*.lock; do
@@ -79,7 +81,6 @@ get_claimed_tasks() {
 }
 
 get_completed_tasks() {
-    # Return list of completed task descriptions
     local completed=""
     if [[ -d "${TASKS_DIR}/completed" ]]; then
         for donefile in "${TASKS_DIR}/completed"/*.done; do
@@ -90,7 +91,6 @@ get_completed_tasks() {
 }
 
 find_unclaimed_task() {
-    # Parse IMPLEMENTATION_PLAN.md for unchecked items, skip claimed/completed ones
     if [[ ! -f "IMPLEMENTATION_PLAN.md" ]]; then
         echo ""
         return
@@ -101,13 +101,11 @@ find_unclaimed_task() {
     local completed
     completed=$(get_completed_tasks)
 
-    # Extract unchecked items: lines matching "- [ ] ..."
     while IFS= read -r line; do
-        # Strip the "- [ ] " prefix to get task description
         local task_desc
         task_desc=$(echo "$line" | sed 's/^[[:space:]]*- \[ \] //')
 
-        # Skip if already claimed
+        # Skip if already claimed by another worker
         if echo "$claimed" | grep -qF "$task_desc"; then
             continue
         fi
@@ -130,25 +128,25 @@ claim_task() {
         return 1
     fi
 
-    # Ensure directories exist
     mkdir -p "${TASKS_DIR}/claimed" "${TASKS_DIR}/completed"
 
-    # Create lock file
+    # Create lock file with task description
     local lockfile="${TASKS_DIR}/claimed/worker-${WORKER_ID}.lock"
     echo "$task_desc" > "$lockfile"
 
-    # Atomic claim via git push
+    # Commit and push — push is the atomic CAS
     git add "$lockfile"
     git commit -m "claim: Worker-${WORKER_ID} claims task" --no-verify 2>/dev/null || true
 
-    if git_push_with_retry "$MAIN_BRANCH"; then
+    if push_to_main; then
         log "Claimed: $task_desc"
         return 0
     else
-        # Push failed — another worker beat us. Remove lock and retry.
+        # Push failed — another worker beat us to push. Sync and retry with different task.
         rm -f "$lockfile"
         git reset HEAD~1 --soft 2>/dev/null || true
         git checkout -- "$lockfile" 2>/dev/null || true
+        sync_with_main || true
         log "Claim race lost, will pick another task"
         return 1
     fi
@@ -166,81 +164,43 @@ release_task() {
     local donefile="${TASKS_DIR}/completed/${safe_name}.done"
     echo "worker-${WORKER_ID}|$(date -u '+%Y-%m-%dT%H:%M:%SZ')|${task_desc}" > "$donefile"
 
+    # Mark task as done in IMPLEMENTATION_PLAN.md
+    # Escape special regex characters in task description for sed
+    local escaped_desc
+    escaped_desc=$(printf '%s\n' "$task_desc" | sed 's/[[\.*^$()+?{|\\]/\\&/g')
+    sed -i '' "s/^\([[:space:]]*\)- \[ \] ${escaped_desc}/\1- [x] ${escaped_desc}/" "IMPLEMENTATION_PLAN.md" 2>/dev/null || \
+    sed -i "s/^\([[:space:]]*\)- \[ \] ${escaped_desc}/\1- [x] ${escaped_desc}/" "IMPLEMENTATION_PLAN.md" 2>/dev/null || true
+
     # Remove lock
     rm -f "$lockfile"
 
-    git add "${TASKS_DIR}/"
+    git add "${TASKS_DIR}/" IMPLEMENTATION_PLAN.md
     git commit -m "release: Worker-${WORKER_ID} completed task" --no-verify 2>/dev/null || true
-    git_push_with_retry "$MAIN_BRANCH" || log_error "Failed to push task release"
-}
-
-# ─── Merge Worker Changes to Main ─────────────────────────────
-
-merge_worker_changes() {
-    log "Merging ${WORKER_BRANCH} to ${MAIN_BRANCH}..."
-
-    # Switch to main and pull latest
-    git checkout "$MAIN_BRANCH" 2>/dev/null
-    git_pull_rebase || true
-
-    # Attempt rebase merge
-    if git merge "$WORKER_BRANCH" --no-edit 2>/dev/null; then
-        if git_push_with_retry "$MAIN_BRANCH"; then
-            log "Merge successful"
-            # Clean up worker branch
-            git branch -d "$WORKER_BRANCH" 2>/dev/null || true
-            return 0
-        fi
-    fi
-
-    # Merge failed — try rebase approach
-    log "Merge failed, attempting rebase..."
-    git merge --abort 2>/dev/null || true
-    git checkout "$WORKER_BRANCH" 2>/dev/null
-    if git rebase "$MAIN_BRANCH" 2>/dev/null; then
-        git checkout "$MAIN_BRANCH" 2>/dev/null
-        if git merge "$WORKER_BRANCH" --no-edit 2>/dev/null; then
-            if git_push_with_retry "$MAIN_BRANCH"; then
-                log "Rebase merge successful"
-                git branch -d "$WORKER_BRANCH" 2>/dev/null || true
-                return 0
-            fi
-        fi
-    fi
-
-    # All merge strategies failed — preserve branch
-    git rebase --abort 2>/dev/null || true
-    git merge --abort 2>/dev/null || true
-    git checkout "$MAIN_BRANCH" 2>/dev/null || true
-    log_error "Could not merge ${WORKER_BRANCH}. Branch preserved for manual resolution."
-    log_error "Run: git merge ${WORKER_BRANCH}"
-    return 1
+    push_to_main || log_error "Failed to push task release"
 }
 
 # ─── Build Worker Prompt ──────────────────────────────────────
 
 build_worker_prompt() {
     local task_desc="$1"
-    local worker_instruction
-    # Write worker instruction to temp file (avoids heredoc quoting issues inside $())
     local tmpfile
     tmpfile=$(mktemp)
     cat <<TMPL > "$tmpfile"
 # Worker Assignment — THESE RULES OVERRIDE ANY CONFLICTING INSTRUCTIONS BELOW
 
-You are **Worker ${WORKER_ID}** in a parallel build system. Other workers are running simultaneously on different tasks in separate git worktrees.
+You are **Worker ${WORKER_ID}** in a parallel build system. Other workers are running simultaneously on different tasks, all pushing to the same branch.
 
 ## Your Assigned Task
 ${task_desc}
 
 ## Context
-Read IMPLEMENTATION_PLAN.md (read-only) to understand your task in context — look for descriptions, acceptance criteria, or notes below the checkbox line. Also read AGENTS.md for build/test commands.
+Read IMPLEMENTATION_PLAN.md to understand your task in context — look for descriptions, acceptance criteria, or notes below the checkbox line. Also read AGENTS.md for build/test commands.
 
 ## Parallel Worker Rules (override the general build prompt below)
 
 1. **ONLY implement the assigned task above.** Do NOT pick a different item from IMPLEMENTATION_PLAN.md — your task has already been selected and locked by the coordinator.
 
-2. **IMPLEMENTATION_PLAN.md and AGENTS.md are read-only** (enforced by filesystem). Read them for context, but do not attempt to update them. If you learn something important, include it in your commit message instead.
+2. **Do NOT modify IMPLEMENTATION_PLAN.md** — the coordinator handles task status updates. Focus only on implementation code.
 
 3. **Minimize file scope.** Other workers are making changes in parallel. Keep your edits to files directly related to your assigned task. Avoid refactoring shared utilities, renaming exports, or reformatting unrelated code — these create merge conflicts.
 
@@ -259,9 +219,9 @@ Read IMPLEMENTATION_PLAN.md (read-only) to understand your task in context — l
 ---
 
 TMPL
+    local worker_instruction
     worker_instruction=$(cat "$tmpfile")
     rm -f "$tmpfile"
-    # Prepend worker instruction to the build prompt
     echo "${worker_instruction}"
     cat "$PROMPT_FILE"
 }
@@ -270,7 +230,6 @@ TMPL
 
 log "Starting (branch: ${MAIN_BRANCH}, max iterations: ${MAX_ITERATIONS:-unlimited})"
 
-# Verify prompt file exists
 if [[ ! -f "$PROMPT_FILE" ]]; then
     log_error "$PROMPT_FILE not found in worktree"
     exit 1
@@ -289,8 +248,8 @@ while true; do
         break
     fi
 
-    # Sync with main
-    git_pull_rebase || {
+    # Sync with main branch (get other workers' changes)
+    sync_with_main || {
         log_error "Cannot sync with main, waiting..."
         sleep 5
         continue
@@ -309,7 +268,7 @@ while true; do
             fi
             log "No unclaimed tasks found (attempt $((EMPTY_TASK_COUNT))/$MAX_EMPTY_TASKS)"
             sleep 5
-            git_pull_rebase || true
+            sync_with_main || true
             break
         fi
 
@@ -318,23 +277,15 @@ while true; do
             EMPTY_TASK_COUNT=0
         else
             claim_attempts=$((claim_attempts + 1))
-            git_pull_rebase || true
+            # sync_with_main already called inside claim_task on failure
         fi
     done
 
-    # No task claimed this round — skip to next iteration
     if [[ -z "$local_task" ]]; then
         continue
     fi
 
-    # Create worker branch for this task
-    git checkout -b "$WORKER_BRANCH" 2>/dev/null || git checkout "$WORKER_BRANCH" 2>/dev/null || {
-        # Branch might exist from a previous failed run
-        git branch -D "$WORKER_BRANCH" 2>/dev/null
-        git checkout -b "$WORKER_BRANCH"
-    }
-
-    # Build prompt and invoke Claude
+    # Invoke Claude to implement the task (no branch switching needed)
     log "Working on: $local_task"
     WORKER_PROMPT=$(build_worker_prompt "$local_task")
 
@@ -348,13 +299,10 @@ while true; do
         --model opus \
         --verbose
 
-    # Push worker branch
-    git_push_with_retry "$WORKER_BRANCH" || log_error "Failed to push worker branch"
+    # Push implementation to shared branch
+    push_to_main || log_error "Failed to push implementation"
 
-    # Merge back to main
-    merge_worker_changes
-
-    # Release the task
+    # Release the task (mark done, remove lock, push)
     release_task "$local_task"
 
     ITERATION=$((ITERATION + 1))
