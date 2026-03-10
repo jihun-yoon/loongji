@@ -1,6 +1,6 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "loongji",
+  "name": "loongji-marketplace",
   "description": "Loongji AI SDLC — from idea to shipped feature with iterative spec, planning, and parallel build execution",
   "owner": {
     "name": "Jihun Yoon",
