@@ -4,6 +4,8 @@ description: "Clean restart dev servers: kill ports, sync deps, start fresh"
 
 Clean restart of development servers.
 
+If `.claude/forge.local.md` exists, read it for explicit command overrides.
+
 ## Steps
 
 ### 1. Detect Dev Server Configuration

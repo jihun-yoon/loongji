@@ -8,6 +8,8 @@ arguments:
 
 Merge a completed feature branch: $ARGUMENTS
 
+If `.claude/forge.local.md` exists, read it for explicit command overrides.
+
 ## Step 1: Identify Merge Target
 
 ### If branch specified:

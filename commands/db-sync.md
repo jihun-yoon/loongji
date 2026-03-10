@@ -4,6 +4,8 @@ description: "Sync database: migrate, detect schema drift, seed, verify"
 
 Synchronize the database schema and seed data.
 
+If `.claude/forge.local.md` exists, read it for explicit command overrides.
+
 ## Steps
 
 ### 1. Pre-check: Database Server

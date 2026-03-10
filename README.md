@@ -152,6 +152,38 @@ Forge reads project configuration from:
 
 No additional configuration files needed.
 
+## Configuration (Optional)
+
+Forge works without configuration — it auto-detects your package manager and reads `CLAUDE.md` for project context.
+
+For explicit control, create `.claude/forge.local.md` in your project root. See [SETTINGS.md](SETTINGS.md) for all available options.
+
+**Quick example** — configure commands and worker count:
+```yaml
+---
+forge:
+  plan_iterations: 3
+  max_workers: 2
+commands:
+  build: pnpm --filter @org/shared build && pnpm build
+  test: pnpm test
+dev:
+  ports: [3000, 4000]
+---
+```
+
+**When to use settings:**
+- Non-standard directory layout
+- Monorepo with shared package build order
+- Tune planning iterations or worker count
+- Specific smoke test endpoints
+- Known test failures to ignore during verification
+
+**When NOT needed:**
+- Standard single-package projects
+- Projects where `CLAUDE.md` already describes all commands
+- Quick prototypes or simple fixes
+
 ## Requirements
 
 - Claude Code with plugin support

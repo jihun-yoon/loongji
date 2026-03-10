@@ -4,6 +4,14 @@ description: "Auto-detect branch → read plan → iterative spec/plan/build exe
 
 Forge work session. Detect current branch, find the matching plan, and execute using iterative spec → plan → build workflow.
 
+## Configuration
+
+Read the project's `CLAUDE.md` for project context.
+If `.claude/forge.local.md` exists, read it for explicit overrides:
+- `forge.plan_iterations`: Number of planning iterations (default: 3)
+- `forge.max_workers`: Parallel workers for build (default: 2)
+- `commands.*`: Explicit build/test/typecheck commands
+
 ## Step 1: Self-Orient
 
 1. **Detect current branch**:
