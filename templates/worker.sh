@@ -134,15 +134,38 @@ claim_task() {
     local lockfile="${TASKS_DIR}/claimed/worker-${WORKER_ID}.lock"
     echo "$task_desc" > "$lockfile"
 
-    # Commit and push — push is the atomic CAS
+    # Atomic CAS: single push attempt. Failure = race lost, no retry.
+    # Retrying after rebase would succeed even if another worker claimed the same task,
+    # because lock files have different names (worker-1.lock vs worker-2.lock).
     git add "$lockfile"
     git commit -m "claim: Worker-${WORKER_ID} claims task" --no-verify 2>/dev/null || true
 
-    if push_to_main; then
+    if git push origin "HEAD:$MAIN_BRANCH" 2>/dev/null; then
+        # Push succeeded — verify no other worker claimed the same task
+        # by pulling latest and checking all lock files
+        sync_with_main || true
+        local other_claims=""
+        for lf in "${TASKS_DIR}/claimed"/*.lock; do
+            [[ -f "$lf" ]] || continue
+            [[ "$lf" == "$lockfile" ]] && continue
+            if grep -qF "$task_desc" "$lf" 2>/dev/null; then
+                other_claims="true"
+                break
+            fi
+        done
+        if [[ -n "$other_claims" ]]; then
+            # Another worker also claimed this task — release ours
+            log "Duplicate claim detected, releasing"
+            rm -f "$lockfile"
+            git add "$lockfile"
+            git commit -m "release: Worker-${WORKER_ID} yields duplicate claim" --no-verify 2>/dev/null || true
+            git push origin "HEAD:$MAIN_BRANCH" 2>/dev/null || true
+            return 1
+        fi
         log "Claimed: $task_desc"
         return 0
     else
-        # Push failed — another worker beat us to push. Sync and retry with different task.
+        # Push failed — another worker pushed first. Back off and pick a different task.
         rm -f "$lockfile"
         git reset HEAD~1 --soft 2>/dev/null || true
         git checkout -- "$lockfile" 2>/dev/null || true
