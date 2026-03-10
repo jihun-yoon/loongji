@@ -1,6 +1,8 @@
 {
   "name": "loongji",
-  "version": "1.0.0",
   "description": "Loongji AI SDLC — from idea to shipped feature with iterative spec, planning, and parallel build execution",
-  "commands": "commands"
+  "author": {
+    "name": "Jihun Yoon",
+    "email": "yjh4374@gmail.com"
+  }
 }
