@@ -88,7 +88,7 @@ Copy these files to the worktree root:
 - `PROMPT_build.md` (template — use verbatim, do NOT modify the 15 guardrails)
 - `AGENTS.md` (template)
 - `IMPLEMENTATION_PLAN.md` (template)
-- `loop.sh` + `worker.sh` (make executable)
+- `loop.sh` (make executable)
 
 ```bash
 cp "${LJ_TEMPLATES}/PROMPT_plan.md" .
@@ -96,8 +96,7 @@ cp "${LJ_TEMPLATES}/PROMPT_build.md" .
 cp "${LJ_TEMPLATES}/AGENTS.md" .
 cp "${LJ_TEMPLATES}/IMPLEMENTATION_PLAN.md" .
 cp "${LJ_TEMPLATES}/loop.sh" .
-cp "${LJ_TEMPLATES}/worker.sh" .
-chmod +x loop.sh worker.sh
+chmod +x loop.sh
 ```
 
 ### 3.2: Fill PROMPT_plan.md PROJECT CONTEXT
@@ -197,7 +196,7 @@ Use the template format header (with the regex parsing comments), then convert P
 ### 3.6: Commit Setup Files
 
 ```bash
-git add PROMPT_plan.md PROMPT_build.md AGENTS.md IMPLEMENTATION_PLAN.md loop.sh worker.sh specs/
+git add PROMPT_plan.md PROMPT_build.md AGENTS.md IMPLEMENTATION_PLAN.md loop.sh specs/
 git commit -m "chore: setup Loongji workflow from PLAN"
 ```
 
@@ -205,11 +204,11 @@ git commit -m "chore: setup Loongji workflow from PLAN"
 
 ### Important: Nested Claude Sessions
 
-`loop.sh` and `worker.sh` spawn `claude -p` subprocesses. When `/lj-cook` runs inside a Claude session, the `CLAUDECODE` environment variable blocks nested Claude launches. **All loop.sh/worker.sh invocations MUST use the `CLAUDECODE=` prefix** to unset this variable:
+`loop.sh` spawns `claude -p` subprocesses. When `/lj-cook` runs inside a Claude session, the `CLAUDECODE` environment variable blocks nested Claude launches. **All loop.sh invocations MUST use the `CLAUDECODE=` prefix** to unset this variable:
 
 ```bash
 CLAUDECODE= ./loop.sh plan 2
-CLAUDECODE= ./loop.sh --workers 2 30
+CLAUDECODE= ./loop.sh 5
 ```
 
 This is critical — without it, loop.sh will fail silently or error with "cannot launch inside another Claude Code session".
@@ -219,7 +218,7 @@ This is critical — without it, loop.sh will fail silently or error with "canno
 Run 2 planning iterations to refine IMPLEMENTATION_PLAN.md:
 
 ```bash
-chmod +x loop.sh worker.sh
+chmod +x loop.sh
 CLAUDECODE= ./loop.sh plan 2
 ```
 
@@ -233,23 +232,26 @@ Each iteration gets a **fresh context window** — disk files (IMPLEMENTATION_PL
 
 **Wait for completion** before proceeding to build.
 
-### 4.2: Build Iterations (parallel workers)
+### 4.2: Build Iterations (5 rounds, agent team parallelism)
 
 ```bash
-CLAUDECODE= ./loop.sh --workers 2 30
+CLAUDECODE= ./loop.sh 5
 ```
 
-This runs 2 parallel workers, each using PROMPT_build.md's 15 guardrails:
+Each iteration gets a fresh context window. Within each iteration, Claude uses **Agent tool to parallelize independent tasks**:
+- Reads IMPLEMENTATION_PLAN.md → identifies independent task groups
+- Spawns Agent(background, worktree) for each independent task
+- Each agent: implements + tests + commits
+- Results collected → IMPLEMENTATION_PLAN.md updated → push
+- Next iteration picks up where previous left off
+
+15 guardrails enforced per iteration:
 - Test-first (Red → Green → Refactor)
 - Separate structural/behavioral commits
 - Update IMPLEMENTATION_PLAN.md after each task
 - Stop if stuck after 3 attempts
-- Git-based atomic task locking
 
-**Worker count guidance**:
-- Small plan (1-2 phases, < 5 tasks): 1 worker (Mode B)
-- Medium plan (3-4 phases, 5-15 tasks): 2 workers
-- Large plan (5+ phases, 15+ tasks): 3 workers (max recommended)
+loop.sh auto-stops when all tasks are `- [x]` in IMPLEMENTATION_PLAN.md.
 
 ### 4.3: Monitor Progress
 
@@ -261,8 +263,8 @@ grep -c '^\- \[x\]' IMPLEMENTATION_PLAN.md
 # Remaining tasks
 grep -c '^\- \[ \]' IMPLEMENTATION_PLAN.md
 
-# Worker logs
-tail -20 .lj-worktrees/worker-1.log 2>/dev/null
+# Progress log
+cat .lj-worktrees/progress.log
 ```
 
 ## Step 5: Post-Build Verification
@@ -286,12 +288,11 @@ When loop.sh completes (all tasks checked or max iterations reached):
    AGENTS.md
    IMPLEMENTATION_PLAN.md
    loop.sh
-   worker.sh
    .lj-worktrees/
    .lj-tasks/
    ```
    ```bash
-   git rm --cached PROMPT_plan.md PROMPT_build.md AGENTS.md IMPLEMENTATION_PLAN.md loop.sh worker.sh 2>/dev/null || true
+   git rm --cached PROMPT_plan.md PROMPT_build.md AGENTS.md IMPLEMENTATION_PLAN.md loop.sh 2>/dev/null || true
    ```
 
 2. **Update plan file**: Status → `Done`
