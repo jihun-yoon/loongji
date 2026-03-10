@@ -138,13 +138,19 @@ For each target:
    tmux resize-pane -t <pane_id> -x <columns>
    ```
 
-4. **Launch Claude with auto-prompt in the new pane**:
+4. **Launch Claude in the new pane** (interactive mode):
    ```bash
-   tmux send-keys -t <pane_id> 'claude --dangerously-skip-permissions -p "/lj-cook"' Enter
+   tmux send-keys -t <pane_id> 'claude --dangerously-skip-permissions' Enter
    ```
 
-   This launches Claude in the worktree directory with the `/lj-cook` skill,
-   which auto-detects the branch → reads the plan → starts executing.
+   **Note**: Do NOT use `-p "/lj-cook"` — slash commands require interactive mode.
+   After Claude starts, the user should manually type `/lj-cook` in the new pane.
+
+5. **Inform the user**:
+   ```
+   Claude launched in worktree pane. To start execution, type in the new pane:
+   /lj-cook
+   ```
 
 ## Step 5: Update SPRINT.md
 

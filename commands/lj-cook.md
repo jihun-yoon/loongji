@@ -203,13 +203,24 @@ git commit -m "chore: setup Loongji workflow from PLAN"
 
 ## Step 4: Execute Loongji Workflow
 
-### 4.1: Planning Iterations (Mode B — sequential)
+### Important: Nested Claude Sessions
+
+`loop.sh` and `worker.sh` spawn `claude -p` subprocesses. When `/lj-cook` runs inside a Claude session, the `CLAUDECODE` environment variable blocks nested Claude launches. **All loop.sh/worker.sh invocations MUST use the `CLAUDECODE=` prefix** to unset this variable:
+
+```bash
+CLAUDECODE= ./loop.sh plan 3
+CLAUDECODE= ./loop.sh --workers 2 30
+```
+
+This is critical — without it, loop.sh will fail silently or error with "cannot launch inside another Claude Code session".
+
+### 4.1: Planning Iterations (3 rounds)
 
 Run 3 planning iterations to refine IMPLEMENTATION_PLAN.md:
 
 ```bash
 chmod +x loop.sh worker.sh
-./loop.sh plan 3
+CLAUDECODE= ./loop.sh plan 3
 ```
 
 This runs `claude -p` headless with PROMPT_plan.md, which:
@@ -218,16 +229,18 @@ This runs `claude -p` headless with PROMPT_plan.md, which:
 - Refines IMPLEMENTATION_PLAN.md with precise tasks
 - Orders by dependency, groups independent tasks for parallel execution
 
+Each iteration gets a **fresh context window** — disk files (IMPLEMENTATION_PLAN.md, specs/) carry state between iterations, keeping each run efficient.
+
 **Wait for completion** before proceeding to build.
 
-### 4.2: Build Iterations (Mode C — parallel workers)
+### 4.2: Build Iterations (parallel workers)
 
 ```bash
-./loop.sh --workers 2 30
+CLAUDECODE= ./loop.sh --workers 2 30
 ```
 
 This runs 2 parallel workers, each using PROMPT_build.md's 15 guardrails:
-- Test-first (Red -> Green -> Refactor)
+- Test-first (Red → Green → Refactor)
 - Separate structural/behavioral commits
 - Update IMPLEMENTATION_PLAN.md after each task
 - Stop if stuck after 3 attempts
@@ -243,7 +256,7 @@ This runs 2 parallel workers, each using PROMPT_build.md's 15 guardrails:
 While loop.sh runs, check status periodically:
 ```bash
 # Completed tasks
-ls .lj-tasks/completed/ 2>/dev/null | wc -l
+grep -c '^\- \[x\]' IMPLEMENTATION_PLAN.md
 
 # Remaining tasks
 grep -c '^\- \[ \]' IMPLEMENTATION_PLAN.md
