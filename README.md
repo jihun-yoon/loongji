@@ -1,16 +1,16 @@
-# Loongji -- The Golden-Crispy SDLC
+# Loongji — The Golden-Crispy SDLC
 
 An AI-native SDLC methodology for Claude Code. Loongji combines sprint-based project management with iterative, parallel code generation.
 
-**"가장 완벽하게 익은 코드만을 내놓는다."**
+**"Only serve code that's been perfectly crisped."**
 
-**Loong (龍)** — 500개의 서브에이전트가 병렬로 움직이는 용의 군단.
-**Ji (누룽지)** — 바닥까지 제대로 눌러 붙여 만든 완성도 높은 결과물.
+**Loong (龍)** — A legion of dragons: 500 subagents moving in parallel.
+**Ji (누룽지)** — Nurungji, the golden-crispy rice: code pressed and perfected to the very bottom.
 
 ## Philosophy
 
-Traditional SDLC: Humans plan -> Humans build -> Humans test
-Loongji SDLC: Humans scope -> AI specs -> AI plans -> AI builds (parallel) -> AI verifies -> Humans merge
+Traditional SDLC: Humans plan → Humans build → Humans test
+Loongji SDLC: Humans scope → AI specs → AI plans → AI builds (parallel) → AI verifies → Humans merge
 
 **Key principle**: Humans define *what* and *why*. AI handles *how*, iteratively and in parallel.
 
@@ -40,7 +40,7 @@ AI runs 3+ planning iterations, studying specs and existing code with up to 500 
 ### Stage 4: Cook (`/lj-cook`)
 Multiple AI workers execute tasks in parallel via git worktrees:
 - Each worker claims a task atomically (git-based locking)
-- Test-first workflow (Red -> Green -> Refactor)
+- Test-first workflow (Red → Green → Refactor)
 - 15 guardrails prevent common AI coding mistakes
 - Workers merge results back to the feature branch
 
@@ -50,20 +50,23 @@ Merge to main with full verification pipeline, auto-generated result documentati
 ## Installation
 
 ```bash
-claude plugins add ~/Documents/Projects/loongji
+claude plugin install loongji
+# Or with --plugin-dir for local development:
+claude --plugin-dir ~/path/to/loongji
 ```
 
 ## Quick Start
 
 ```bash
-/lj-plan "add per-user token quota"   # 1. 계획 생성 (docs/plans/ 자동 부트스트랩)
-/lj-sprint add token-quota             # 2. 스프린트 큐에 추가
-/lj-worktree next                      # 3. 워크트리 + Claude 자동 실행
-/lj-crisp                              # 4. 진행 상황 확인
-/lj-serve feat/token-quota             # 5. 머지 + 검증 + Result 기록
+/lj-plan "add per-user token quota"   # 1. Create plan (auto-bootstraps docs/plans/)
+/lj-sprint add token-quota             # 2. Add to sprint queue
+/lj-worktree next                      # 3. Create worktree + auto-launch Claude
+/lj-crisp                              # 4. Check progress
+/lj-serve feat/token-quota             # 5. Merge + verify + record results
 ```
 
 See [GUIDE.md](GUIDE.md) for detailed scenarios (greenfield, brownfield, parallel execution, etc.).
+한국어 가이드: [GUIDE.ko.md](GUIDE.ko.md)
 
 ## Commands
 
@@ -72,7 +75,7 @@ See [GUIDE.md](GUIDE.md) for detailed scenarios (greenfield, brownfield, paralle
 | `/lj-plan <feature>` | Design | Create plan with agent team analysis |
 | `/lj-sprint [action]` | Queue | Manage sprint queue (add, status, reorder) |
 | `/lj-worktree [target]` | Launch | Create worktree + start execution |
-| `/lj-cook` | Cook | (Auto) Iterative spec -> plan -> build |
+| `/lj-cook` | Cook | (Auto) Iterative spec → plan → build |
 | `/lj-crisp` | Check | Show active workers, progress, queue |
 | `/lj-serve [branch]` | Serve | Merge + verify + result docs + cleanup |
 
@@ -130,7 +133,7 @@ Tracks the current sprint cycle:
 
 ### Initial Setup
 
-`/lj-plan` or `/lj-sprint`을 처음 실행하면 자동으로 부트스트랩됩니다. 수동 설정 불필요.
+Running `/lj-plan` or `/lj-sprint` for the first time auto-bootstraps the entire structure. No manual setup required.
 
 ## How It Works
 
@@ -166,7 +169,7 @@ SPRINT.md tracks current work state:
 - **Execution Queue**: what's next (priority + dependency ordered)
 - **Done This Sprint**: completed items
 
-### Parallel Execution (Mode C)
+### Parallel Execution
 
 ```
 Feature Branch (worktree)
@@ -183,9 +186,9 @@ Workers coordinate via:
 ### 15 Build Guardrails
 
 The build prompt includes battle-tested guardrails:
-1. Test first (Red -> Green -> Refactor)
+1. Test first (Red → Green → Refactor)
 2. Separate structural and behavioral commits
-3. No `git add -A` -- stage specific files
+3. No `git add -A` — stage specific files
 4. Keep IMPLEMENTATION_PLAN.md current
 5. Stop if stuck after 3 attempts (don't weaken tests)
 6. Complete implementations (no stubs/placeholders)
@@ -212,6 +215,16 @@ Most projects need only `CLAUDE.md`. Settings file is useful for monorepos, non-
 - tmux (for pane management)
 - Project with CLAUDE.md and docs/plans/ structure
 
+## Inspiration & Credits
+
+Loongji builds on ideas and techniques from these projects:
+
+- **[Augmented Coding: Beyond the Vibes](https://tidyfirst.substack.com/p/augmented-coding-beyond-the-vibes)** by Kent Beck — The distinction between "vibe coding" and "augmented coding": maintaining code quality, TDD discipline, and architectural oversight while leveraging AI capabilities. Loongji's test-first guardrails and human-in-the-loop design philosophy are directly influenced by this framework.
+
+- **[Claude's C Compiler](https://github.com/anthropics/claudes-c-compiler)** by Anthropic — Demonstrated that Claude can autonomously implement complex systems (a full C compiler in Rust) given clear test-driven specifications, without interactive pair programming. Loongji's spec-driven, test-first worker execution model follows this pattern.
+
+- **[The Ralph Technique](https://github.com/ghuntley/how-to-ralph-wiggum)** by Geoffrey Huntley — The loop-based execution methodology: a bash script repeatedly feeds instructions to Claude with a fresh context window each iteration, reading current state from a persistent plan file on disk. Loongji's `loop.sh`/`worker.sh` architecture, JTBD-based spec generation, AGENTS.md operational learnings, and backpressure-through-tests approach are directly derived from this technique.
+
 ## Comparison
 
 | Feature | Manual Dev | Sprint Skills | Loongji |
@@ -223,3 +236,7 @@ Most projects need only `CLAUDE.md`. Settings file is useful for monorepos, non-
 | Context limits | N/A | Single window | Unlimited (fresh per iteration) |
 | Merge verification | Manual | `/merge` auto | `/lj-serve` auto |
 | Result tracking | Git log | PLAN Result section | PLAN Result section |
+
+## License
+
+MIT

@@ -1,126 +1,126 @@
 # Loongji Usage Guide
 
-## Scenario A: Greenfield (새 프로젝트)
+## Scenario A: Greenfield (New Project)
 
-프로젝트가 막 시작됐거나 아직 계획 문서가 없는 상태.
+A brand-new project with no existing plan documents.
 
-### 전제 조건
+### Prerequisites
 
-1. Git 저장소 초기화 완료
-2. `CLAUDE.md` 작성 (build/test/dev 명령어, 기술 스택)
+1. Git repository initialized
+2. `CLAUDE.md` written (build/test/dev commands, tech stack)
 
 ```bash
 git init my-project && cd my-project
-# CLAUDE.md 작성 (프로젝트 개요, 명령어, 컨벤션)
+# Write CLAUDE.md (project overview, commands, conventions)
 ```
 
-### Step 1: 플러그인 설치
+### Step 1: Install Plugin
 
 ```bash
-claude plugins add ~/Documents/Projects/loongji
+claude plugin install loongji
 ```
 
-### Step 2: 첫 계획 생성
+### Step 2: Create First Plan
 
 ```bash
-/lj-plan "사용자 인증 시스템 구현"
+/lj-plan "implement user authentication system"
 ```
 
-`/lj-plan`이 자동으로:
-- `docs/plans/{done,planned,reference}/` 디렉토리 생성
-- `docs/plans/README.md` (계획 인덱스) 생성
-- `docs/plans/SPRINT.md` (스프린트 상태) 생성
-- `PLAN-YYYYMMDD-user-auth.md` 작성
+`/lj-plan` automatically:
+- Creates `docs/plans/{done,planned,reference}/` directories
+- Creates `docs/plans/README.md` (plan index)
+- Creates `docs/plans/SPRINT.md` (sprint state)
+- Writes `PLAN-YYYYMMDD-user-auth.md`
 
-### Step 3: 스프린트에 추가
+### Step 3: Add to Sprint
 
 ```bash
 /lj-sprint add user-auth
 ```
 
-### Step 4: 실행
+### Step 4: Execute
 
 ```bash
-/lj-worktree next     # 워크트리 생성 + Claude 자동 실행
-/lj-crisp              # 진행 상황 확인
-/lj-serve              # 완료 후 머지
+/lj-worktree next     # Create worktree + auto-launch Claude
+/lj-crisp              # Check progress
+/lj-serve              # Merge when complete
 ```
 
-### Greenfield 팁
+### Greenfield Tips
 
-- CLAUDE.md가 비어 있으면 `/lj-cook`이 빌드/테스트 명령어를 추론하기 어려움 → 최소한 명령어 섹션은 작성
-- 첫 계획은 작게 시작 (2-3 Phase) → 워크플로우에 익숙해진 후 대형 계획 진행
-- `.claude/loongji.local.md`는 처음엔 불필요 — 기본값으로 충분
+- If CLAUDE.md is empty, `/lj-cook` will struggle to infer build/test commands — write at least the commands section
+- Start small (2-3 phases) for your first plan — scale up after you're comfortable with the workflow
+- `.claude/loongji.local.md` is unnecessary at first — defaults are sufficient
 
 ---
 
-## Scenario B: Brownfield (기존 프로젝트, Loongji 첫 도입)
+## Scenario B: Brownfield (Existing Project, First Loongji Adoption)
 
-이미 코드가 있지만 계획 문서 체계가 없는 상태.
+An existing codebase with no plan document structure.
 
-### 전제 조건
+### Prerequisites
 
-1. Git 저장소에 코드가 있음
-2. `CLAUDE.md` 존재 (또는 작성)
+1. Git repository with existing code
+2. `CLAUDE.md` exists (or write one)
 
-### Step 1: 플러그인 설치
+### Step 1: Install Plugin
 
 ```bash
-claude plugins add ~/Documents/Projects/loongji
+claude plugin install loongji
 ```
 
-### Step 2: (선택) 기존 작업을 계획으로 정리
+### Step 2: (Optional) Document Existing Work
 
-기존 코드에 대한 계획 문서를 소급 작성할 필요는 없음. 앞으로의 작업부터 Loongji로 관리하면 됨.
+No need to retroactively create plan documents for existing code. Just start managing future work with Loongji.
 
-기존 히스토리를 기록하고 싶다면:
+If you want to record existing history:
 ```bash
 mkdir -p docs/plans/done
-# 기존 완료 작업에 대한 PLAN 파일 수동 작성 (선택)
+# Manually write PLAN files for completed work (optional)
 ```
 
-### Step 3: 새 기능 계획
+### Step 3: Plan New Feature
 
 ```bash
-/lj-plan "기존 API에 rate limiting 추가"
+/lj-plan "add rate limiting to existing API"
 ```
 
-자동 부트스트랩이 `docs/plans/` 구조를 생성. 에이전트 팀이 **기존 코드베이스를 분석**해서 계획에 반영.
+Auto-bootstrap creates the `docs/plans/` structure. The agent team **analyzes the existing codebase** and reflects patterns in the plan.
 
-### Step 4: 실행
+### Step 4: Execute
 
-Greenfield와 동일:
+Same as greenfield:
 ```bash
 /lj-sprint add rate-limiting
 /lj-worktree next
 ```
 
-### Brownfield 팁
+### Brownfield Tips
 
-- `/lj-plan`의 에이전트 팀이 기존 코드 패턴을 분석하므로, 계획이 프로젝트 컨벤션에 맞게 생성됨
-- 모노레포라면 `.claude/loongji.local.md`에 `build_shared` 명령어 설정 권장
-- 기존 테스트 실패가 있다면 `post_merge.known_failures`에 등록해 `/lj-serve` 검증에서 무시
+- `/lj-plan`'s agent team analyzes existing code patterns, so plans are generated to match project conventions
+- For monorepos, configure `build_shared` command in `.claude/loongji.local.md`
+- If there are pre-existing test failures, register them in `post_merge.known_failures` to skip during `/lj-serve` verification
 
 ---
 
-## Scenario C: Brownfield (기존 프로젝트, 이미 docs/plans/ 사용 중)
+## Scenario C: Brownfield (Existing Project, Already Using docs/plans/)
 
-Loongji의 문서 구조를 이미 사용하고 있거나, 유사한 체계가 있는 상태.
+A project that already uses Loongji's document structure or a similar system.
 
-### 기존 구조가 Loongji와 호환되는 경우
+### If Existing Structure is Compatible
 
-`docs/plans/` + `PLAN-*.md` + `SPRINT.md` 양식이 맞다면:
+If you already have `docs/plans/` + `PLAN-*.md` + `SPRINT.md` in the expected format:
 
 ```bash
-claude plugins add ~/Documents/Projects/loongji
-/lj-crisp   # 현재 상태 확인
+claude plugin install loongji
+/lj-crisp   # Check current state
 ```
 
-바로 사용 가능. 부트스트랩은 기존 파일을 건드리지 않음.
+Ready to use immediately. Bootstrap won't touch existing files.
 
-### 기존 구조가 다른 경우
+### If Existing Structure Differs
 
-계획 문서가 다른 위치에 있다면 `.claude/loongji.local.md`로 경로 지정:
+If plan documents live in a different location, specify paths via `.claude/loongji.local.md`:
 
 ```yaml
 ---
@@ -130,77 +130,77 @@ plan_index: my-docs/features/INDEX.md
 ---
 ```
 
-기존 문서 양식이 다르다면 (예: RFC, ADR 방식):
-- Loongji는 `PLAN-YYYYMMDD-*.md` 양식을 기대함
-- 기존 문서는 `reference/`에 보관하고, Loongji 양식으로 새 계획 작성
+If existing document format differs (e.g., RFC, ADR style):
+- Loongji expects `PLAN-YYYYMMDD-*.md` format
+- Keep existing documents in `reference/` and write new plans in Loongji format
 
 ---
 
-## Scenario D: 단일 기능 빠르게 구현 (스프린트 없이)
+## Scenario D: Quick Single Feature (No Sprint)
 
-작은 버그 수정이나 단순 기능을 스프린트 관리 없이 바로 실행.
+Small bug fix or simple feature without sprint management overhead.
 
 ```bash
-# 1. 계획 생성
-/lj-plan "fix: 로그인 페이지 비밀번호 검증 버그"
+# 1. Create plan
+/lj-plan "fix: login page password validation bug"
 
-# 2. 스프린트 건너뛰고 바로 워크트리 생성
+# 2. Skip sprint, create worktree directly
 /lj-worktree fix/login-validation
 
-# 3. 완료 후 머지
+# 3. Merge when complete
 /lj-serve fix/login-validation
 ```
 
-`/lj-sprint`은 여러 계획을 관리할 때 유용. 단일 작업이면 생략 가능.
+`/lj-sprint` is useful when managing multiple plans. For single tasks, it can be skipped entirely.
 
 ---
 
-## Scenario E: 대형 기능 병렬 실행
+## Scenario E: Large-Scale Parallel Execution
 
-여러 계획을 동시에 진행.
+Running multiple plans concurrently.
 
 ```bash
-# 계획 3개 수립
+# Create 3 plans
 /lj-plan "token quota system"
 /lj-plan "storage quota system"
 /lj-plan "fix ops dashboard bugs"
 
-# 스프린트 큐에 추가 (의존성 분석 자동)
+# Add to sprint queue (dependency analysis is automatic)
 /lj-sprint add token-quota
-/lj-sprint add storage-quota      # → token-quota 의존성 감지
+/lj-sprint add storage-quota      # → detects dependency on token-quota
 /lj-sprint add ops-bugfix
 
-# 병렬 가능한 것들 동시 실행
-/lj-worktree all                  # 의존성 없는 것만 워크트리 생성
+# Launch all parallelizable plans simultaneously
+/lj-worktree all                  # Only creates worktrees for unblocked items
 
-# 상태 확인
+# Check status
 /lj-crisp
 
-# 완료된 것부터 순차 머지
-/lj-serve fix/ops-bugfix          # 독립적인 것 먼저
-/lj-serve feat/token-quota        # 의존성 해소 → storage-quota 언블록
+# Merge completed plans in order
+/lj-serve fix/ops-bugfix          # Independent items first
+/lj-serve feat/token-quota        # Dependency resolved → unblocks storage-quota
 /lj-serve feat/storage-quota
 ```
 
-### 병렬 실행 시 주의
+### Parallel Execution Notes
 
-- 최대 3-4개 워크트리 권장 (시스템 리소스)
-- 같은 파일을 수정하는 계획은 순차 머지 필요 (SPRINT.md Merge Conflicts Risk 참고)
-- `/lj-crisp`으로 전체 진행 상황 모니터링
+- Recommended maximum: 3-4 concurrent worktrees (system resource limit)
+- Plans modifying the same files must be merged sequentially (see SPRINT.md Merge Conflicts Risk)
+- Monitor overall progress with `/lj-crisp`
 
 ---
 
-## Scenario F: Worker 수 조절
+## Scenario F: Worker Count Tuning
 
-계획 크기에 따른 worker 설정.
+Configure workers based on plan size.
 
-| 계획 규모 | Phase 수 | Task 수 | 권장 Worker |
-|-----------|---------|---------|------------|
-| Small | 1-2 | < 5 | 1 (순차) |
+| Plan Size | Phases | Tasks | Recommended Workers |
+|-----------|--------|-------|---------------------|
+| Small | 1-2 | < 5 | 1 (sequential) |
 | Medium | 3-4 | 5-15 | 2 |
 | Large | 5+ | 15+ | 3 |
 
-`.claude/loongji.local.md`로 기본값 변경:
+Override defaults via `.claude/loongji.local.md`:
 ```yaml
 ---
 loongji:
@@ -209,29 +209,29 @@ loongji:
 ---
 ```
 
-또는 `/lj-cook` 실행 시 loop.sh에 직접 전달:
+Or pass directly to loop.sh during `/lj-cook`:
 ```bash
 ./loop.sh --workers 3 30    # 3 workers, max 30 iterations each
 ```
 
 ---
 
-## 커맨드 흐름 요약
+## Command Flow Summary
 
 ```
-/lj-plan ─── 계획 문서 생성
+/lj-plan ─── Create plan document
     │
     ▼
-/lj-sprint ── 스프린트 큐 관리 (선택)
+/lj-sprint ── Manage sprint queue (optional)
     │
     ▼
-/lj-worktree ─ 워크트리 + Claude 실행
+/lj-worktree ─ Create worktree + launch Claude
     │
-    ▼ (자동)
+    ▼ (automatic)
 /lj-cook ──── spec → plan iterations → parallel build
     │
-    ├── /lj-crisp ── 진행 상황 확인 (아무 때나)
+    ├── /lj-crisp ── Check progress (anytime)
     │
     ▼
-/lj-serve ─── 머지 + 검증 + Result 기록 + 정리
+/lj-serve ─── Merge + verify + record results + cleanup
 ```
