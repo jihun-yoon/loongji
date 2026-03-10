@@ -1,0 +1,7 @@
+{
+  "name": "forge",
+  "version": "1.0.0",
+  "description": "AI SDLC methodology — from idea to shipped feature with iterative spec, planning, and parallel build execution",
+  "commands": "commands",
+  "agents": "agents"
+}
