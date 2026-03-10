@@ -17,7 +17,7 @@ All path references below use these resolved paths.
 
 Read the project's `CLAUDE.md` for project context.
 If `.claude/loongji.local.md` exists, read it for explicit overrides:
-- `loongji.plan_iterations`: Number of planning iterations (default: 3)
+- `loongji.plan_iterations`: Number of planning iterations (default: 2)
 - `loongji.max_workers`: Parallel workers for build (default: 2)
 - `commands.*`: Explicit build/test/typecheck commands
 
@@ -208,19 +208,19 @@ git commit -m "chore: setup Loongji workflow from PLAN"
 `loop.sh` and `worker.sh` spawn `claude -p` subprocesses. When `/lj-cook` runs inside a Claude session, the `CLAUDECODE` environment variable blocks nested Claude launches. **All loop.sh/worker.sh invocations MUST use the `CLAUDECODE=` prefix** to unset this variable:
 
 ```bash
-CLAUDECODE= ./loop.sh plan 3
+CLAUDECODE= ./loop.sh plan 2
 CLAUDECODE= ./loop.sh --workers 2 30
 ```
 
 This is critical — without it, loop.sh will fail silently or error with "cannot launch inside another Claude Code session".
 
-### 4.1: Planning Iterations (3 rounds)
+### 4.1: Planning Iterations (2 rounds)
 
-Run 3 planning iterations to refine IMPLEMENTATION_PLAN.md:
+Run 2 planning iterations to refine IMPLEMENTATION_PLAN.md:
 
 ```bash
 chmod +x loop.sh worker.sh
-CLAUDECODE= ./loop.sh plan 3
+CLAUDECODE= ./loop.sh plan 2
 ```
 
 This runs `claude -p` headless with PROMPT_plan.md, which:

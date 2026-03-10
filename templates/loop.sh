@@ -45,6 +45,9 @@ fi
 
 CURRENT_BRANCH=$(git branch --show-current)
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+LOG_DIR=".lj-worktrees"
+mkdir -p "$LOG_DIR"
+PROGRESS_LOG="$LOG_DIR/progress.log"
 
 # Verify prompt file exists
 if [ ! -f "$PROMPT_FILE" ]; then
@@ -68,6 +71,9 @@ echo "Workers: $WORKERS"
 [ $MAX_ITERATIONS -gt 0 ] && echo "Max:     $MAX_ITERATIONS iterations per worker"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
+# Initialize progress log
+echo "[$(date '+%H:%M:%S')] STARTED mode=$MODE workers=$WORKERS max=$MAX_ITERATIONS branch=$CURRENT_BRANCH" >> "$PROGRESS_LOG"
+
 # ─── Mode B: Single Worker (backward compatible) ──────────────
 
 if [[ $WORKERS -le 1 ]]; then
@@ -79,18 +85,24 @@ if [[ $WORKERS -le 1 ]]; then
             break
         fi
 
+        ITERATION=$((ITERATION + 1))
+        ITER_START=$(date +%s)
+        echo "[$(date '+%H:%M:%S')] ITERATION $ITERATION/$MAX_ITERATIONS started (mode=$MODE)" >> "$PROGRESS_LOG"
+
         # Run Loongji iteration with selected prompt
-        # -p: Headless mode (non-interactive, reads from stdin)
-        # --dangerously-skip-permissions: Auto-approve all tool calls (YOLO mode)
-        # --output-format=stream-json: Structured output for logging/monitoring
-        # --model opus: Primary agent uses Opus for complex reasoning (task selection, prioritization)
-        #               Can use 'sonnet' in build mode for speed if plan is clear and tasks well-defined
-        # --verbose: Detailed execution logging
         cat "$PROMPT_FILE" | claude -p \
             --dangerously-skip-permissions \
             --output-format=stream-json \
             --model opus \
             --verbose
+
+        ITER_END=$(date +%s)
+        ITER_DURATION=$(( ITER_END - ITER_START ))
+
+        # Count tasks
+        TASKS_DONE=$(grep -c '^\s*- \[x\]' IMPLEMENTATION_PLAN.md 2>/dev/null || echo 0)
+        TASKS_LEFT=$(grep -c '^\s*- \[ \]' IMPLEMENTATION_PLAN.md 2>/dev/null || echo 0)
+        echo "[$(date '+%H:%M:%S')] ITERATION $ITERATION/$MAX_ITERATIONS done (${ITER_DURATION}s) tasks=$TASKS_DONE/$((TASKS_DONE + TASKS_LEFT))" >> "$PROGRESS_LOG"
 
         # Push changes after each iteration
         git push origin "$CURRENT_BRANCH" || {
@@ -98,11 +110,11 @@ if [[ $WORKERS -le 1 ]]; then
             git push -u origin "$CURRENT_BRANCH"
         }
 
-        ITERATION=$((ITERATION + 1))
         echo -e "\n\n======================== LOOP $ITERATION ========================\n"
 
         # Stop condition: all tasks complete (no unchecked items remain)
         if [[ -f "IMPLEMENTATION_PLAN.md" ]] && ! grep -qE '^\s*- \[ \]' "IMPLEMENTATION_PLAN.md"; then
+            echo "[$(date '+%H:%M:%S')] ALL_TASKS_COMPLETE" >> "$PROGRESS_LOG"
             echo "All tasks in IMPLEMENTATION_PLAN.md are complete. Stopping."
             break
         fi
@@ -254,6 +266,7 @@ for i in $(seq 1 "$WORKERS"); do
 
     WORKER_PIDS+=($!)
     echo "  Worker $i: PID $! (log: $LOG_FILE)"
+    echo "[$(date '+%H:%M:%S')] WORKER $i started PID=$!" >> "$PROGRESS_LOG"
 done
 
 echo ""
@@ -308,6 +321,9 @@ while true; do
     done
 
     if $all_done; then
+        TASKS_DONE=$(grep -c '^\s*- \[x\]' IMPLEMENTATION_PLAN.md 2>/dev/null || echo 0)
+        TASKS_LEFT=$(grep -c '^\s*- \[ \]' IMPLEMENTATION_PLAN.md 2>/dev/null || echo 0)
+        echo "[$(date '+%H:%M:%S')] ALL_WORKERS_DONE tasks=$TASKS_DONE/$((TASKS_DONE + TASKS_LEFT))" >> "$PROGRESS_LOG"
         echo "[Coordinator] All workers completed"
         break
     fi

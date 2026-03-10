@@ -23,17 +23,30 @@ Read `docs/plans/SPRINT.md` to get:
 
 If SPRINT.md doesn't exist, report "No active sprint" and stop.
 
-### 2. Check for Running Workers
+### 2. Check Progress Log and Running Workers
 
+For each active worktree directory, check the progress log:
 ```bash
-# Loongji worktree workers
-ls .lj-worktrees/*/worker-*.log 2>/dev/null
+# Progress log — shows iteration history with timestamps and durations
+cat <worktree-dir>/.lj-worktrees/progress.log 2>/dev/null
+```
+
+Parse the log to determine:
+- **Current phase**: `STARTED mode=plan` or `STARTED mode=build`
+- **Iteration progress**: count `ITERATION ... done` lines vs max
+- **Task counts**: latest `tasks=N/M` entry
+- **Running processes**: check for active `loop.sh` or `claude -p` processes
+
+Also check worker-level details:
+```bash
+# Worker logs (parallel mode)
+ls <worktree-dir>/.lj-worktrees/worker-*.log 2>/dev/null
 
 # Task claiming status
-ls .lj-tasks/claimed/*.lock 2>/dev/null
+ls <worktree-dir>/.lj-tasks/claimed/*.lock 2>/dev/null
 
 # Completed tasks
-ls .lj-tasks/completed/*.done 2>/dev/null
+ls <worktree-dir>/.lj-tasks/completed/*.done 2>/dev/null
 ```
 
 ### 3. Check Implementation Plan Progress
@@ -77,9 +90,9 @@ git worktree list
 | Blocked | N |
 
 ### Active Worktrees
-| Branch | Directory | Plan | Tasks Done | Tasks Left | Workers |
-|--------|-----------|------|-----------|-----------|---------|
-| feat/x | ../repo-x | PLAN-x | 5 | 3 | 2 running |
+| Branch | Directory | Plan | Phase | Iteration | Tasks | Duration |
+|--------|-----------|------|-------|-----------|-------|----------|
+| feat/x | ../repo-x | PLAN-x | Planning | 2/2 | 0/16 | 12m |
 
 ### Execution Queue
 | Order | Plan | Priority | Status |
