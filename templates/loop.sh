@@ -49,7 +49,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # Verify prompt file exists
 if [ ! -f "$PROMPT_FILE" ]; then
     echo "Error: $PROMPT_FILE not found"
-    echo "Run /ralph-init first to scaffold project files."
+    echo "Run /lj-cook first to scaffold project files."
     exit 1
 fi
 
@@ -79,7 +79,7 @@ if [[ $WORKERS -le 1 ]]; then
             break
         fi
 
-        # Run Ralph iteration with selected prompt
+        # Run Loongji iteration with selected prompt
         # -p: Headless mode (non-interactive, reads from stdin)
         # --dangerously-skip-permissions: Auto-approve all tool calls (YOLO mode)
         # --output-format=stream-json: Structured output for logging/monitoring
@@ -113,7 +113,7 @@ fi
 
 # ─── Mode C: Parallel Workers ─────────────────────────────────
 
-WORKTREE_DIR=".ralph-worktrees"
+WORKTREE_DIR=".lj-worktrees"
 WORKER_PIDS=()
 WORKER_DIRS=()
 REPO_ROOT=$(git rev-parse --show-toplevel)
@@ -125,7 +125,7 @@ elif [[ -f "${SCRIPT_DIR}/worker.sh" ]]; then
     WORKER_SCRIPT="${SCRIPT_DIR}/worker.sh"
 else
     echo "Error: worker.sh not found"
-    echo "Run /ralph-init to scaffold project files."
+    echo "Run /lj-cook to scaffold project files."
     exit 1
 fi
 
@@ -170,10 +170,10 @@ cleanup() {
     done
 
     # Clean up stale lock files
-    if [[ -d ".ralph-tasks/claimed" ]]; then
+    if [[ -d ".lj-tasks/claimed" ]]; then
         echo "Cleaning stale lock files..."
-        rm -f .ralph-tasks/claimed/worker-*.lock
-        git add .ralph-tasks/claimed/ 2>/dev/null
+        rm -f .lj-tasks/claimed/worker-*.lock
+        git add .lj-tasks/claimed/ 2>/dev/null
         git commit -m "cleanup: remove stale worker locks" --no-verify 2>/dev/null || true
         git push origin "$CURRENT_BRANCH" 2>/dev/null || true
     fi
@@ -186,7 +186,7 @@ cleanup() {
         if [[ -d "$dir" ]]; then
             git worktree remove "$dir" --force 2>/dev/null || rm -rf "$dir"
         fi
-        git branch -D "ralph-worktree-${worker_num}" 2>/dev/null || true
+        git branch -D "lj-worktree-${worker_num}" 2>/dev/null || true
     done
     git worktree prune 2>/dev/null || true
     rmdir "$WORKTREE_DIR" 2>/dev/null || true
@@ -198,9 +198,9 @@ trap cleanup SIGINT SIGTERM EXIT
 
 # ─── Create task directories ──────────────────────────────────
 
-mkdir -p .ralph-tasks/claimed .ralph-tasks/completed
-git add .ralph-tasks/ 2>/dev/null
-git commit -m "init: create .ralph-tasks directory for parallel workers" --no-verify 2>/dev/null || true
+mkdir -p .lj-tasks/claimed .lj-tasks/completed
+git add .lj-tasks/ 2>/dev/null
+git commit -m "init: create .lj-tasks directory for parallel workers" --no-verify 2>/dev/null || true
 git push origin "$CURRENT_BRANCH" 2>/dev/null || true
 
 # ─── Create worktrees and launch workers ──────────────────────
@@ -218,8 +218,8 @@ for i in $(seq 1 "$WORKERS"); do
         git worktree remove "$WTREE_PATH" --force 2>/dev/null || rm -rf "$WTREE_PATH"
     fi
     # Delete stale worktree branch if it exists
-    git branch -D "ralph-worktree-${i}" 2>/dev/null || true
-    git worktree add -b "ralph-worktree-${i}" "$WTREE_PATH" HEAD 2>/dev/null || {
+    git branch -D "lj-worktree-${i}" 2>/dev/null || true
+    git worktree add -b "lj-worktree-${i}" "$WTREE_PATH" HEAD 2>/dev/null || {
         # Fallback: detached HEAD
         git worktree add --detach "$WTREE_PATH" HEAD 2>/dev/null
     }
@@ -243,8 +243,8 @@ for i in $(seq 1 "$WORKERS"); do
     # no need to rely on prompt instructions for these.
     chmod a-w "$WTREE_PATH/IMPLEMENTATION_PLAN.md" 2>/dev/null || true
     chmod a-w "$WTREE_PATH/AGENTS.md" 2>/dev/null || true
-    # Remove .ralph-tasks/ from worktrees — task locking happens in main repo only
-    rm -rf "$WTREE_PATH/.ralph-tasks" 2>/dev/null || true
+    # Remove .lj-tasks/ from worktrees — task locking happens in main repo only
+    rm -rf "$WTREE_PATH/.lj-tasks" 2>/dev/null || true
 
     # Launch worker in its worktree
     (
@@ -281,7 +281,7 @@ while true; do
                 echo "[Coordinator] Worker $worker_num (PID $pid) crashed with exit code $exit_code"
 
                 # Clean up stale lock for crashed worker
-                lockfile=".ralph-tasks/claimed/worker-${worker_num}.lock"
+                lockfile=".lj-tasks/claimed/worker-${worker_num}.lock"
                 if [[ -f "$lockfile" ]]; then
                     echo "[Coordinator] Cleaning stale lock for worker $worker_num"
                     rm -f "$lockfile"

@@ -8,6 +8,60 @@ arguments:
 
 Sprint management: $ARGUMENTS
 
+## Path Resolution
+
+If `.claude/loongji.local.md` exists and has `plans_dir`, use that. Otherwise default:
+- **PLANS_DIR**: `docs/plans/`
+- **PLANS_DIR/planned/**: upcoming plans
+- **PLANS_DIR/done/**: completed plans
+- **PLANS_DIR/README.md**: plan index
+- **PLANS_DIR/SPRINT.md**: sprint state
+
+All path references below use these resolved paths.
+
+## Step 0: Bootstrap if Needed
+
+If `docs/plans/SPRINT.md` doesn't exist:
+
+1. Create directory:
+   ```bash
+   mkdir -p docs/plans/{done,planned,reference}
+   touch docs/plans/done/.gitkeep docs/plans/planned/.gitkeep docs/plans/reference/.gitkeep
+   ```
+2. Create SPRINT.md:
+```markdown
+# Sprint
+
+> Last updated: YYYY-MM-DD
+
+## Active Worktrees
+
+| Branch | Directory | Plan | Status |
+|--------|-----------|------|--------|
+
+## Execution Queue
+
+| Order | Plan | Branch | Priority | Dependencies | Status |
+|-------|------|--------|----------|--------------|--------|
+
+## Merge Conflicts Risk
+
+| File | Plans | Resolution |
+|------|-------|------------|
+
+## Blocked / Notes
+
+(none)
+
+## Done This Sprint
+
+(none yet)
+```
+3. If `docs/plans/README.md` also doesn't exist, create it (same template as `/lj-plan` Step 0)
+4. Commit: `git commit -m "chore: bootstrap Loongji document structure"`
+
+If the structure already exists, skip silently.
+
 ## Step 1: Read Current State
 
 Read these files:
@@ -98,7 +152,7 @@ Write changes to `docs/plans/SPRINT.md`:
 | Ready Now | N items (list) |
 | Blocked | N items (list with reasons) |
 
-Next: `/forge-worktree next` to start the first ready item
+Next: `/lj-worktree next` to start the first ready item
 ```
 
 ## Rules

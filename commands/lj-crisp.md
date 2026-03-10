@@ -1,8 +1,16 @@
 ---
-description: "Show forge workflow status: active worktrees, sprint queue, worker status"
+description: "Show Loongji workflow status: active worktrees, sprint queue, worker status"
 ---
 
-Display the current forge workflow status.
+Display the current Loongji workflow status.
+
+## Path Resolution
+
+If `.claude/loongji.local.md` exists and has `plans_dir`, use that. Otherwise default:
+- **PLANS_DIR**: `docs/plans/`
+- **PLANS_DIR/SPRINT.md**: sprint state
+
+All path references below use these resolved paths.
 
 ## Steps
 
@@ -18,14 +26,14 @@ If SPRINT.md doesn't exist, report "No active sprint" and stop.
 ### 2. Check for Running Workers
 
 ```bash
-# Ralph worktree workers
-ls .forge-worktrees/*/worker-*.log 2>/dev/null
+# Loongji worktree workers
+ls .lj-worktrees/*/worker-*.log 2>/dev/null
 
 # Task claiming status
-ls .forge-tasks/claimed/*.lock 2>/dev/null
+ls .lj-tasks/claimed/*.lock 2>/dev/null
 
 # Completed tasks
-ls .forge-tasks/completed/*.done 2>/dev/null
+ls .lj-tasks/completed/*.done 2>/dev/null
 ```
 
 ### 3. Check Implementation Plan Progress
@@ -58,7 +66,7 @@ git worktree list
 ### 5. Display Summary
 
 ```
-## Forge Status
+## Loongji Status
 
 ### Sprint Overview
 | Metric | Count |
@@ -87,7 +95,7 @@ git worktree list
 ### 6. Actionable Suggestions
 
 Based on the status, suggest next actions:
-- If active worktrees are done: "Run `/forge-merge <branch>` to merge"
-- If queue has ready items and no active worktrees: "Run `/forge-worktree next` to start"
+- If active worktrees are done: "Run `/lj-serve <branch>` to merge"
+- If queue has ready items and no active worktrees: "Run `/lj-worktree next` to start"
 - If all items blocked: "Merge active worktrees first to unblock"
-- If everything is done: "Sprint complete! Run `/forge-sprint new` for a new sprint"
+- If everything is done: "Sprint complete! Run `/lj-sprint new` for a new sprint"

@@ -1,4 +1,13 @@
 node_modules/
 .claude/*.local.md
-.ralph-worktrees/
-.ralph-tasks/
+
+# Loongji ephemeral artifacts (created by /lj-cook, cleaned on /lj-serve)
+.lj-worktrees/
+.lj-tasks/
+PROMPT_plan.md
+PROMPT_build.md
+AGENTS.md
+IMPLEMENTATION_PLAN.md
+loop.sh
+worker.sh
+specs/

@@ -2,14 +2,23 @@
 description: "Auto-detect branch → read plan → iterative spec/plan/build execution"
 ---
 
-Forge work session. Detect current branch, find the matching plan, and execute using iterative spec → plan → build workflow.
+Loongji cook session. Detect current branch, find the matching plan, and execute using iterative spec → plan → build workflow.
+
+## Path Resolution
+
+If `.claude/loongji.local.md` exists and has `plans_dir`, use that. Otherwise default:
+- **PLANS_DIR**: `docs/plans/`
+- **PLANS_DIR/planned/**: upcoming plans
+- **PLANS_DIR/SPRINT.md**: sprint state
+
+All path references below use these resolved paths.
 
 ## Configuration
 
 Read the project's `CLAUDE.md` for project context.
-If `.claude/forge.local.md` exists, read it for explicit overrides:
-- `forge.plan_iterations`: Number of planning iterations (default: 3)
-- `forge.max_workers`: Parallel workers for build (default: 2)
+If `.claude/loongji.local.md` exists, read it for explicit overrides:
+- `loongji.plan_iterations`: Number of planning iterations (default: 3)
+- `loongji.max_workers`: Parallel workers for build (default: 2)
 - `commands.*`: Explicit build/test/typecheck commands
 
 ## Step 1: Self-Orient
@@ -33,7 +42,7 @@ If `.claude/forge.local.md` exists, read it for explicit overrides:
    - [dependency-name]: [In Progress / Not Started]
 
    This worktree was likely created before dependencies were resolved.
-   Wait for the dependency to be merged, then run `/forge-work` again.
+   Wait for the dependency to be merged, then run `/lj-cook` again.
    ```
    - If dependencies are in Done or have no dependencies: proceed
 
@@ -50,7 +59,7 @@ If `.claude/forge.local.md` exists, read it for explicit overrides:
    | Plan | PLAN-20260310-feature-name |
    | Phases | 3 |
    | Dependencies | None / All resolved |
-   | Execution | Forge iterative (parallel workers) |
+   | Execution | Loongji iterative (parallel workers) |
    ```
 
 ## Step 2: Check Prior Work
@@ -59,19 +68,19 @@ If `.claude/forge.local.md` exists, read it for explicit overrides:
 git log main..<branch> --oneline
 ```
 
-- If forge workflow files already exist (IMPLEMENTATION_PLAN.md, specs/, loop.sh): **resume** — skip to Step 4
+- If Loongji workflow files already exist (IMPLEMENTATION_PLAN.md, specs/, loop.sh): **resume** — skip to Step 4
 - If commits exist but no workflow files: check what's done, adjust accordingly
 - If clean: proceed to Step 3
 
-## Step 3: Setup Forge Workflow
+## Step 3: Setup Loongji Workflow
 
-Convert the PLAN into iterative execution format using forge's templates.
+Convert the PLAN into iterative execution format using Loongji's templates.
 
-### 3.1: Copy Forge Templates
+### 3.1: Copy Loongji Templates
 
-Copy templates from the forge plugin's templates directory:
+Copy templates from the Loongji plugin's templates directory:
 ```bash
-FORGE_TEMPLATES="${CLAUDE_PLUGIN_ROOT}/templates"
+LJ_TEMPLATES="${CLAUDE_PLUGIN_ROOT}/templates"
 ```
 
 Copy these files to the worktree root:
@@ -82,12 +91,12 @@ Copy these files to the worktree root:
 - `loop.sh` + `worker.sh` (make executable)
 
 ```bash
-cp "${FORGE_TEMPLATES}/PROMPT_plan.md" .
-cp "${FORGE_TEMPLATES}/PROMPT_build.md" .
-cp "${FORGE_TEMPLATES}/AGENTS.md" .
-cp "${FORGE_TEMPLATES}/IMPLEMENTATION_PLAN.md" .
-cp "${FORGE_TEMPLATES}/loop.sh" .
-cp "${FORGE_TEMPLATES}/worker.sh" .
+cp "${LJ_TEMPLATES}/PROMPT_plan.md" .
+cp "${LJ_TEMPLATES}/PROMPT_build.md" .
+cp "${LJ_TEMPLATES}/AGENTS.md" .
+cp "${LJ_TEMPLATES}/IMPLEMENTATION_PLAN.md" .
+cp "${LJ_TEMPLATES}/loop.sh" .
+cp "${LJ_TEMPLATES}/worker.sh" .
 chmod +x loop.sh worker.sh
 ```
 
@@ -138,7 +147,7 @@ Run these after implementing to get immediate feedback:
 
 ### 3.4: Convert PLAN Phases → specs/*.md
 
-Create `specs/` directory. For each Phase in the PLAN file, create a spec file following ralph's required format:
+Create `specs/` directory. For each Phase in the PLAN file, create a spec file following Loongji's required format:
 
 ```markdown
 # [Phase Title]
@@ -164,12 +173,12 @@ Create `specs/` directory. For each Phase in the PLAN file, create a spec file f
 
 ### 3.5: Generate IMPLEMENTATION_PLAN.md
 
-Use ralph's template format header (with the regex parsing comments), then convert PLAN phases into tasks:
+Use the template format header (with the regex parsing comments), then convert PLAN phases into tasks:
 
 ```markdown
 # Implementation Plan
 
-<!-- [ralph's template comments — copy verbatim from template] -->
+<!-- [template comments — copy verbatim from template] -->
 
 ## Phase 1: [Title from PLAN]
 - [ ] [Task derived from Phase 1 steps]
@@ -189,10 +198,10 @@ Use ralph's template format header (with the regex parsing comments), then conve
 
 ```bash
 git add PROMPT_plan.md PROMPT_build.md AGENTS.md IMPLEMENTATION_PLAN.md loop.sh worker.sh specs/
-git commit -m "chore: setup forge workflow from PLAN"
+git commit -m "chore: setup Loongji workflow from PLAN"
 ```
 
-## Step 4: Execute Forge Workflow
+## Step 4: Execute Loongji Workflow
 
 ### 4.1: Planning Iterations (Mode B — sequential)
 
@@ -234,13 +243,13 @@ This runs 2 parallel workers, each using PROMPT_build.md's 15 guardrails:
 While loop.sh runs, check status periodically:
 ```bash
 # Completed tasks
-ls .ralph-tasks/completed/ 2>/dev/null | wc -l
+ls .lj-tasks/completed/ 2>/dev/null | wc -l
 
 # Remaining tasks
 grep -c '^\- \[ \]' IMPLEMENTATION_PLAN.md
 
 # Worker logs
-tail -20 .ralph-worktrees/worker-1.log 2>/dev/null
+tail -20 .lj-worktrees/worker-1.log 2>/dev/null
 ```
 
 ## Step 5: Post-Build Verification
@@ -256,7 +265,7 @@ When loop.sh completes (all tasks checked or max iterations reached):
 
 ## Step 6: Plan Completion
 
-1. **Clean up forge execution artifacts** (don't merge to main):
+1. **Clean up Loongji execution artifacts** (don't merge to main):
    Add to `.gitignore` if not already:
    ```
    PROMPT_plan.md
@@ -265,8 +274,8 @@ When loop.sh completes (all tasks checked or max iterations reached):
    IMPLEMENTATION_PLAN.md
    loop.sh
    worker.sh
-   .forge-worktrees/
-   .forge-tasks/
+   .lj-worktrees/
+   .lj-tasks/
    ```
    ```bash
    git rm --cached PROMPT_plan.md PROMPT_build.md AGENTS.md IMPLEMENTATION_PLAN.md loop.sh worker.sh 2>/dev/null || true
@@ -285,18 +294,18 @@ When loop.sh completes (all tasks checked or max iterations reached):
    | Tasks | N/N complete |
    | Tests | Passed |
    | Build | Passed |
-   | Forge artifacts | Cleaned (not merged) |
+   | Loongji artifacts | Cleaned (not merged) |
 
    To merge, run in the main pane:
-   /forge-merge <branch>
+   /lj-serve <branch>
    ```
 
 ## Rules
 - Always read the plan file completely before starting any work
-- **Use forge templates verbatim** — do NOT rewrite PROMPT_plan.md or PROMPT_build.md guardrails
+- **Use Loongji templates verbatim** — do NOT rewrite PROMPT_plan.md or PROMPT_build.md guardrails
 - Only fill in PROJECT CONTEXT, AGENTS.md, specs, and IMPLEMENTATION_PLAN.md from the PLAN
 - **Dependency gate**: If dependencies aren't merged, STOP and report — don't proceed
-- Forge execution artifacts are ephemeral — never merge them to main
+- Loongji execution artifacts are ephemeral — never merge them to main
 - If loop.sh fails or workers crash, check logs before retrying
 - Read AGENTS.md for all project-specific commands — do not hardcode build/test commands
 - Maximum 3 workers recommended (diminishing returns beyond that)

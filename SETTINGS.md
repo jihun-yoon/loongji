@@ -1,12 +1,12 @@
-# Forge — Project Settings
+# Loongji — Project Settings
 
 ## Overview
 
-Forge works out of the box by reading your project's `CLAUDE.md` for context. For projects that need workflow customization, create an optional settings file.
+Loongji works out of the box by reading your project's `CLAUDE.md` for context. For projects that need workflow customization, create an optional settings file.
 
 ## Setup (Optional)
 
-Create `.claude/forge.local.md` in your project root:
+Create `.claude/loongji.local.md` in your project root:
 
 ```yaml
 ---
@@ -19,8 +19,8 @@ plan_index: docs/plans/README.md        # Plan index file
 worktree_prefix: myproject              # Prefix for worktree directories (default: repo name)
 max_worktrees: 3                        # Maximum concurrent worktrees
 
-# Forge execution configuration
-forge:
+# Loongji execution configuration
+loongji:
   plan_iterations: 3                    # Number of planning iterations before build
   max_workers: 2                        # Parallel workers for Mode C build
   max_build_iterations: 30             # Max build iterations per worker
@@ -60,13 +60,13 @@ smoke_test:
     - { path: "/api/v1/projects", name: "Projects" }
 ---
 
-Additional project-specific notes for the forge workflow.
+Additional project-specific notes for the Loongji workflow.
 For example: migration gotchas, merge checklist items, codebase patterns.
 ```
 
 ## All settings are optional
 
-If `.claude/forge.local.md` doesn't exist, forge will:
+If `.claude/loongji.local.md` doesn't exist, Loongji will:
 - Auto-detect package manager from lockfiles
 - Use `docs/plans/` as default plan directory
 - Derive worktree prefix from repository name

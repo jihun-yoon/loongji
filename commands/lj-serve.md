@@ -8,7 +8,18 @@ arguments:
 
 Merge a completed feature branch: $ARGUMENTS
 
-If `.claude/forge.local.md` exists, read it for explicit command overrides.
+## Path Resolution
+
+If `.claude/loongji.local.md` exists and has `plans_dir`, use that. Otherwise default:
+- **PLANS_DIR**: `docs/plans/`
+- **PLANS_DIR/planned/**: source (move from here)
+- **PLANS_DIR/done/**: destination (move to here)
+- **PLANS_DIR/README.md**: plan index
+- **PLANS_DIR/SPRINT.md**: sprint state
+
+All path references below use these resolved paths.
+
+If `.claude/loongji.local.md` exists, also read it for explicit command overrides.
 
 ## Step 1: Identify Merge Target
 
@@ -239,7 +250,7 @@ After merge, check if any sprint items are now unblocked:
 |------|---------------|--------|
 | storage-quota | token-quota | Now Ready |
 
-Start next item? Use `/forge-worktree next`
+Start next item? Use `/lj-worktree next`
 ```
 
 ## Rules

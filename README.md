@@ -1,26 +1,31 @@
-# Forge -- AI Software Development Lifecycle
+# Loongji -- The Golden-Crispy SDLC
 
-An AI-native SDLC methodology for Claude Code. Forge combines sprint-based project management with iterative, parallel code generation.
+An AI-native SDLC methodology for Claude Code. Loongji combines sprint-based project management with iterative, parallel code generation.
+
+**"가장 완벽하게 익은 코드만을 내놓는다."**
+
+**Loong (龍)** — 500개의 서브에이전트가 병렬로 움직이는 용의 군단.
+**Ji (누룽지)** — 바닥까지 제대로 눌러 붙여 만든 완성도 높은 결과물.
 
 ## Philosophy
 
 Traditional SDLC: Humans plan -> Humans build -> Humans test
-Forge SDLC: Humans scope -> AI specs -> AI plans -> AI builds (parallel) -> AI verifies -> Humans merge
+Loongji SDLC: Humans scope -> AI specs -> AI plans -> AI builds (parallel) -> AI verifies -> Humans merge
 
 **Key principle**: Humans define *what* and *why*. AI handles *how*, iteratively and in parallel.
 
-## The Forge Pipeline
+## The Loongji Pipeline
 
 ```
  +----------+    +----------+    +----------+    +----------+    +----------+
- |  DESIGN  |--->|   SPEC   |--->|   PLAN   |--->|  BUILD   |--->|  SHIP    |
- | /forge-  |    | Auto-gen |    | Iterative|    | Parallel |    | /forge-  |
- |  plan    |    | from plan|    | refinement|   | workers  |    |  merge   |
+ |  DESIGN  |--->|   SPEC   |--->|   PLAN   |--->|  COOK    |--->|  SERVE   |
+ | /lj-plan |    | Auto-gen |    | Iterative|    | Parallel |    | /lj-     |
+ |          |    | from plan|    | refinement|   | workers  |    |  serve   |
  +----------+    +----------+    +----------+    +----------+    +----------+
    Human -------------- AI ---------------------------------------- Human
 ```
 
-### Stage 1: Design (`/forge-plan`)
+### Stage 1: Design (`/lj-plan`)
 Human describes what they want. AI agent team researches the codebase, identifies risks, creates a PLAN document.
 
 ### Stage 2: Spec (automatic)
@@ -32,60 +37,107 @@ PLAN phases are converted to detailed specifications following the Job To Be Don
 ### Stage 3: Plan (iterative)
 AI runs 3+ planning iterations, studying specs and existing code with up to 500 parallel subagents. Produces a refined IMPLEMENTATION_PLAN.md with dependency-ordered, parallel-safe task checklist.
 
-### Stage 4: Build (parallel)
+### Stage 4: Cook (`/lj-cook`)
 Multiple AI workers execute tasks in parallel via git worktrees:
 - Each worker claims a task atomically (git-based locking)
 - Test-first workflow (Red -> Green -> Refactor)
 - 15 guardrails prevent common AI coding mistakes
 - Workers merge results back to the feature branch
 
-### Stage 5: Ship (`/forge-merge`)
+### Stage 5: Serve (`/lj-serve`)
 Merge to main with full verification pipeline, auto-generated result documentation, and worktree cleanup.
 
 ## Installation
 
 ```bash
-claude plugins add ~/Documents/Projects/forge
+claude plugins add ~/Documents/Projects/loongji
 ```
 
 ## Quick Start
 
 ```bash
-# 1. Define scope
-/forge-plan "add per-user token quota with monthly limits and admin dashboard"
-
-# 2. Add to sprint
-/forge-sprint add token-quota
-
-# 3. Launch (creates worktree + starts AI execution)
-/forge-worktree next
-
-# 4. Monitor progress
-/forge-status
-
-# 5. When done, merge from main session
-/forge-merge feat/token-quota
+/lj-plan "add per-user token quota"   # 1. 계획 생성 (docs/plans/ 자동 부트스트랩)
+/lj-sprint add token-quota             # 2. 스프린트 큐에 추가
+/lj-worktree next                      # 3. 워크트리 + Claude 자동 실행
+/lj-crisp                              # 4. 진행 상황 확인
+/lj-serve feat/token-quota             # 5. 머지 + 검증 + Result 기록
 ```
+
+See [GUIDE.md](GUIDE.md) for detailed scenarios (greenfield, brownfield, parallel execution, etc.).
 
 ## Commands
 
 | Command | Stage | Description |
 |---------|-------|-------------|
-| `/forge-plan <feature>` | Design | Create plan with agent team analysis |
-| `/forge-sprint [action]` | Queue | Manage sprint queue (add, status, reorder) |
-| `/forge-worktree [target]` | Launch | Create worktree + start execution |
-| `/forge-work` | Execute | (Auto) Iterative spec -> plan -> build |
-| `/forge-merge [branch]` | Ship | Merge + verify + result docs + cleanup |
-| `/forge-status` | Monitor | Show active workers, progress, queue |
-| `/db-sync` | Infra | Sync database: migrate, seed, verify |
-| `/dev-restart` | Infra | Clean restart dev servers |
+| `/lj-plan <feature>` | Design | Create plan with agent team analysis |
+| `/lj-sprint [action]` | Queue | Manage sprint queue (add, status, reorder) |
+| `/lj-worktree [target]` | Launch | Create worktree + start execution |
+| `/lj-cook` | Cook | (Auto) Iterative spec -> plan -> build |
+| `/lj-crisp` | Check | Show active workers, progress, queue |
+| `/lj-serve [branch]` | Serve | Merge + verify + result docs + cleanup |
+
+## Document Management
+
+Loongji expects a `docs/plans/` directory structure in your project:
+
+```
+docs/plans/
+├── README.md           ← Plan index (Done / Planned / Reference tables)
+├── SPRINT.md           ← Current sprint state (Active / Queue / Done)
+├── done/               ← Completed plans
+├── planned/            ← Upcoming plans
+├── in-progress/        ← Currently executing (optional)
+└── reference/          ← Analysis docs, architecture notes
+```
+
+### Plan File Convention
+
+**Naming**: `PLAN-YYYYMMDD-<feature-name>.md` (date = creation date)
+
+**Required headers** (lines 3-4, after title):
+```markdown
+# PLAN: Feature Title
+
+> **Status**: Planned | In Progress | Done | Deferred
+> **Type**: feature | bugfix | infra | refactor
+> Branch: `feat/feature-name`
+```
+
+**Status values**:
+- `Planned` — Scope defined, not yet started
+- `In Progress` — Worktree created, actively being built
+- `Done` — All phases complete, ready for or already merged
+- `Deferred` — Postponed to a future sprint
+
+**Type values**:
+- `feature` — New functionality (requires design across layers)
+- `bugfix` — Bug fix (code location already identified)
+- `infra` — Infrastructure/architecture change (scaling, deployment)
+- `refactor` — Code structure improvement (no behavior change)
+
+### Plan Index (`docs/plans/README.md`)
+
+Tracks all plans in tables by status. `/lj-plan` and `/lj-serve` update this automatically.
+
+### Sprint File (`docs/plans/SPRINT.md`)
+
+Tracks the current sprint cycle:
+- **Active Worktrees** — branches currently being worked on
+- **Execution Queue** — priority-ordered queue with dependency tracking
+- **Done This Sprint** — completed items
+
+`/lj-sprint` manages this file.
+
+### Initial Setup
+
+`/lj-plan` or `/lj-sprint`을 처음 실행하면 자동으로 부트스트랩됩니다. 수동 설정 불필요.
 
 ## How It Works
 
 ### Document Lifecycle
 
 ```
-PLAN-*.md (permanent)          Ralph artifacts (ephemeral)
+PLAN-*.md (permanent)          Loongji artifacts (ephemeral)
 +---------------------+       +------------------------+
 | > Status: Planned   |------>| specs/*.md              |
 | > Type: feature     |       | IMPLEMENTATION_PLAN.md  |
@@ -105,7 +157,7 @@ PLAN-*.md (permanent)          Ralph artifacts (ephemeral)
 
 - **PLAN-*.md** is the permanent record (what was planned + what was delivered)
 - Execution artifacts (specs, tasks, prompts) live in the worktree and are cleaned up on merge
-- The Result section is auto-generated by `/forge-merge` from git history
+- The Result section is auto-generated by `/lj-serve` from git history
 
 ### Sprint Management
 
@@ -145,44 +197,13 @@ The build prompt includes battle-tested guardrails:
 
 ## Configuration
 
-Forge reads project configuration from:
-1. `CLAUDE.md` -- build commands, test commands, project structure
-2. `docs/plans/SPRINT.md` -- current sprint state
-3. `docs/plans/README.md` -- plan index
+Loongji reads project context from three layers:
 
-No additional configuration files needed.
+1. **`CLAUDE.md`** — build/test/dev commands, project structure (Claude reads automatically)
+2. **`docs/plans/`** — plan index + sprint state (managed by Loongji commands)
+3. **`.claude/loongji.local.md`** — optional explicit overrides ([SETTINGS.md](SETTINGS.md))
 
-## Configuration (Optional)
-
-Forge works without configuration — it auto-detects your package manager and reads `CLAUDE.md` for project context.
-
-For explicit control, create `.claude/forge.local.md` in your project root. See [SETTINGS.md](SETTINGS.md) for all available options.
-
-**Quick example** — configure commands and worker count:
-```yaml
----
-forge:
-  plan_iterations: 3
-  max_workers: 2
-commands:
-  build: pnpm --filter @org/shared build && pnpm build
-  test: pnpm test
-dev:
-  ports: [3000, 4000]
----
-```
-
-**When to use settings:**
-- Non-standard directory layout
-- Monorepo with shared package build order
-- Tune planning iterations or worker count
-- Specific smoke test endpoints
-- Known test failures to ignore during verification
-
-**When NOT needed:**
-- Standard single-package projects
-- Projects where `CLAUDE.md` already describes all commands
-- Quick prototypes or simple fixes
+Most projects need only `CLAUDE.md`. Settings file is useful for monorepos, non-standard paths, or tuning worker count.
 
 ## Requirements
 
@@ -193,12 +214,12 @@ dev:
 
 ## Comparison
 
-| Feature | Manual Dev | Sprint Skills | Forge |
-|---------|-----------|--------------|-------|
+| Feature | Manual Dev | Sprint Skills | Loongji |
+|---------|-----------|--------------|---------|
 | Planning | Human | Agent team (1 session) | Agent team (1 session) |
 | Spec writing | Human | N/A | Auto from plan |
 | Task breakdown | Human | Plan phases | Iterative (500 subagents) |
 | Execution | Human | Agent team (1 session) | Parallel workers (N sessions) |
 | Context limits | N/A | Single window | Unlimited (fresh per iteration) |
-| Merge verification | Manual | `/merge` auto | `/forge-merge` auto |
+| Merge verification | Manual | `/merge` auto | `/lj-serve` auto |
 | Result tracking | Git log | PLAN Result section | PLAN Result section |

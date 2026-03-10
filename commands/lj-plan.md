@@ -8,6 +8,91 @@ arguments:
 
 Create a feature plan for: $ARGUMENTS
 
+## Path Resolution
+
+If `.claude/loongji.local.md` exists and has `plans_dir`, use that. Otherwise default:
+- **PLANS_DIR**: `docs/plans/`
+- **PLANS_DIR/planned/**: upcoming plans
+- **PLANS_DIR/done/**: completed plans
+- **PLANS_DIR/reference/**: analysis docs
+- **PLANS_DIR/README.md**: plan index
+- **PLANS_DIR/SPRINT.md**: sprint state
+
+All path references below use these resolved paths.
+
+## Step 0: Bootstrap Document Structure
+
+Check if `docs/plans/` exists. If not, create the full structure:
+
+```bash
+mkdir -p docs/plans/{done,planned,reference}
+touch docs/plans/done/.gitkeep docs/plans/planned/.gitkeep docs/plans/reference/.gitkeep
+```
+
+If `docs/plans/README.md` doesn't exist, create it:
+```markdown
+# Feature Plans Index
+
+Feature plans for this project. Organized by status: `done/`, `planned/`, `reference/`.
+
+**Naming convention**: `PLAN-YYYYMMDD-<feature-name>.md` (date = creation date).
+
+---
+
+## Done (`done/`)
+
+| Plan | Description | Merged |
+|------|-------------|--------|
+
+## Planned (`planned/`)
+
+| Plan | Description | Priority |
+|------|-------------|----------|
+
+## Reference (`reference/`)
+
+| Document | Description |
+|----------|-------------|
+```
+
+If `docs/plans/SPRINT.md` doesn't exist, create it:
+```markdown
+# Sprint
+
+> Last updated: YYYY-MM-DD
+
+## Active Worktrees
+
+| Branch | Directory | Plan | Status |
+|--------|-----------|------|--------|
+
+## Execution Queue
+
+| Order | Plan | Branch | Priority | Dependencies | Status |
+|-------|------|--------|----------|--------------|--------|
+
+## Merge Conflicts Risk
+
+| File | Plans | Resolution |
+|------|-------|------------|
+
+## Blocked / Notes
+
+(none)
+
+## Done This Sprint
+
+(none yet)
+```
+
+If any files were created, commit:
+```bash
+git add docs/plans/
+git commit -m "chore: bootstrap Loongji document structure"
+```
+
+If the structure already exists, skip this step silently.
+
 ## Step 1: Understand the Request
 
 Parse the user's feature description. Identify:
@@ -126,8 +211,8 @@ Show the plan summary and ask for review:
 
 Review the plan and let me know if you want to:
 - Adjust scope or phases
-- Add to SPRINT.md (use `/forge-sprint`)
-- Start work immediately (use `/forge-worktree`)
+- Add to SPRINT.md (use `/lj-sprint`)
+- Start work immediately (use `/lj-worktree`)
 ```
 
 ## Rules

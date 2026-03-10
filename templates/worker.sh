@@ -1,5 +1,5 @@
 #!/bin/bash
-# Ralph Multiverse — Parallel Worker
+# Loongji — Parallel Worker
 # Runs inside a git worktree, claims tasks from IMPLEMENTATION_PLAN.md via git-based locking,
 # invokes Claude to implement them, and merges results back to main.
 #
@@ -13,7 +13,7 @@ MAX_ITERATIONS="${2:-0}"
 MAIN_BRANCH="${3:-main}"
 WORKER_BRANCH="worker-${WORKER_ID}"
 PROMPT_FILE="PROMPT_build.md"
-TASKS_DIR=".ralph-tasks"
+TASKS_DIR=".lj-tasks"
 ITERATION=0
 EMPTY_TASK_COUNT=0
 MAX_EMPTY_TASKS=3
@@ -64,7 +64,7 @@ git_push_with_retry() {
 }
 
 # ─── Task Claiming ────────────────────────────────────────────
-# Uses .ralph-tasks/claimed/worker-N.lock files + git push as atomic CAS.
+# Uses .lj-tasks/claimed/worker-N.lock files + git push as atomic CAS.
 # IMPLEMENTATION_PLAN.md itself is never modified by the locking mechanism.
 
 get_claimed_tasks() {

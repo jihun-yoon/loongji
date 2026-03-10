@@ -11,6 +11,16 @@ arguments:
 
 Sprint-aware worktree management: $ARGUMENTS
 
+## Path Resolution
+
+If `.claude/loongji.local.md` exists and has `plans_dir`, use that. Otherwise default:
+- **PLANS_DIR**: `docs/plans/`
+- **PLANS_DIR/planned/**: upcoming plans
+- **PLANS_DIR/SPRINT.md**: sprint state
+- **PLANS_DIR/README.md**: plan index
+
+All path references below use these resolved paths.
+
 ## Step 1: Read Sprint Context
 
 Read `docs/plans/SPRINT.md` to understand:
@@ -44,7 +54,7 @@ Read `docs/plans/SPRINT.md` to understand:
    - storage-quota: Blocked by token-quota (not yet merged)
    - 1000-user-scale: Blocked by token-quota (recommended)
 
-   No worktree created. Resolve dependencies first or use `/forge-worktree <branch>` to force.
+   No worktree created. Resolve dependencies first or use `/lj-worktree <branch>` to force.
    ```
    **Stop here — do not create worktree.**
 
@@ -130,10 +140,10 @@ For each target:
 
 4. **Launch Claude with auto-prompt in the new pane**:
    ```bash
-   tmux send-keys -t <pane_id> 'claude --dangerously-skip-permissions -p "/forge-work"' Enter
+   tmux send-keys -t <pane_id> 'claude --dangerously-skip-permissions -p "/lj-cook"' Enter
    ```
 
-   This launches Claude in the worktree directory with the `/forge-work` skill,
+   This launches Claude in the worktree directory with the `/lj-cook` skill,
    which auto-detects the branch → reads the plan → starts executing.
 
 ## Step 5: Update SPRINT.md
@@ -168,7 +178,7 @@ After successful worktree creation, update `docs/plans/SPRINT.md`:
 | Directory | ../${REPO_NAME}-ops-bugfix |
 | Plan | PLAN-20260310-ops-bugfix.md |
 | Sprint Status | Updated |
-| Claude | Launched with /forge-work |
+| Claude | Launched with /lj-cook |
 
 ### Active Worktrees
 | Branch | Directory | Plan | Status |
@@ -184,5 +194,5 @@ After successful worktree creation, update `docs/plans/SPRINT.md`:
 - Always update SPRINT.md after worktree creation — this is the source of truth
 - **Never start a blocked plan without explicit user confirmation and warning**
 - If SPRINT.md doesn't exist, fall back to asking user for target branch
-- Always launch Claude with `/forge-work` in the new pane
+- Always launch Claude with `/lj-cook` in the new pane
 - Maximum 3-4 concurrent worktrees (resource limit) — warn if exceeding
