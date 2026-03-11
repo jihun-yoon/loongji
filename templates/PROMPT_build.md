@@ -4,7 +4,18 @@
 
 1. Your task is to implement functionality per the specifications. Study @IMPLEMENTATION_PLAN.md and identify ALL unchecked `- [ ]` items. Before making changes, search the codebase (don't assume not implemented) using Sonnet subagents.
 
-2. **Parallelize independent tasks.** Group unchecked items into independent sets (no shared file modifications). For each independent group, spawn a background Agent with `isolation: "worktree"` to implement the task. Each agent should receive: the task description, relevant spec files, and AGENTS.md contents. Use Opus subagents when complex reasoning is needed (debugging, architectural decisions). For dependent tasks (must happen in order), execute them sequentially after their dependencies complete.
+2. **Parallelize independent tasks using Agent Teams.** Group unchecked items into independent sets (no shared file modifications). Create a team with `TeamCreate`, then create tasks with `TaskCreate` (one per unchecked item). Spawn worker agents with `team_name` — each worker follows this loop: check `TaskList` → claim an unassigned task via `TaskUpdate` → implement → mark completed → check for next task. If a worker gets stuck, they message the team lead or another worker via `SendMessage`. For dependent tasks (must happen in order), mark dependencies in task descriptions so workers execute them sequentially. Use Opus subagents when complex reasoning is needed (debugging, architectural decisions). Max 3 workers.
+
+WORKER PROMPT TEMPLATE (include when spawning each worker):
+```
+You are a worker on this team. Repeat this loop until no tasks remain:
+1. TaskList → find unassigned task → TaskUpdate (owner=your name, status=in_progress)
+2. Implement with TDD (Red→Green→Refactor). Stage only changed files, commit, git push.
+3. TaskUpdate (status=completed) → SendMessage to team lead with summary.
+4. TaskList → if more unassigned tasks exist, go to step 1. Otherwise go idle.
+If stuck after 3 attempts: commit what you have, SendMessage the problem to team lead, move to next task.
+If you discover an issue affecting another worker: SendMessage them directly.
+```
 
 3. **Test first.** Each agent must write or update a failing test first (Red), write minimum code to pass (Green), then tidy (Refactor). Ultrathink.
 
@@ -12,7 +23,7 @@
 
 5. **Separate structural and behavioral commits.** If you need to refactor before implementing, commit the refactor first (structural change), then commit the new functionality (behavioral change). Never mix both in one commit. Stage only the files you changed — do NOT use `git add -A`. After the commit, `git push`.
 
-6. When the tasks pass, update @IMPLEMENTATION_PLAN.md, then commit and push.
+6. When all workers complete (or go idle), send `shutdown_request` to each worker. Update @IMPLEMENTATION_PLAN.md, then commit and push.
 
 99999. Important: When authoring documentation, capture the why — tests and implementation importance.
 999999. Important: Single sources of truth, no migrations/adapters. If tests unrelated to your work fail, resolve them as part of the increment.

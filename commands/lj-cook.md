@@ -208,7 +208,7 @@ git commit -m "chore: setup Loongji workflow from PLAN"
 
 ```bash
 CLAUDECODE= ./loop.sh plan 2
-CLAUDECODE= ./loop.sh 5
+CLAUDECODE= ./loop.sh 2
 ```
 
 This is critical — without it, loop.sh will fail silently or error with "cannot launch inside another Claude Code session".
